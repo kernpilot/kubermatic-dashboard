@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"maps"
 
 	apiv1 "k8c.io/dashboard/v2/pkg/api/v1"
 	kubermaticv1 "k8c.io/kubermatic/sdk/v2/apis/kubermatic/v1"
@@ -36,6 +37,18 @@ import (
 // Spec builds ClusterSpec kubermatic Custom Resource from API Cluster.
 // The ClusterTemplate can be nil.
 func Spec(ctx context.Context, apiCluster apiv1.Cluster, template *kubermaticv1.ClusterTemplate, seed *kubermaticv1.Seed, dc *kubermaticv1.Datacenter, config *kubermaticv1.KubermaticConfiguration, secretKeyGetter provider.SecretKeySelectorValueFunc, caBundle *x509.CertPool, features features.FeatureGate) (*kubermaticv1.ClusterSpec, provider.CloudProvider, error) {
+	// kubehz B51: NEVER alias the caller's (process-wide) feature-gate map into
+	// the cluster spec. The encryptionAtRest handling below and the create
+	// mutation (clustermutation.MutateCreate: externalCloudProvider et al.)
+	// write into spec.Features — through the alias they poison the shared map
+	// for every later create served by this process: one Hetzner create forces
+	// externalCloudProvider=true onto all subsequent bringyourown creates,
+	// which then fail validation until the pod restarts.
+	features = maps.Clone(features)
+	if features == nil {
+		features = map[string]bool{}
+	}
+
 	var userSSHKeysAgentEnabled = ptr.To(true)
 	if apiCluster.Spec.EnableUserSSHKeyAgent != nil {
 		userSSHKeysAgentEnabled = apiCluster.Spec.EnableUserSSHKeyAgent
