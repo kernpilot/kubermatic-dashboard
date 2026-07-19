@@ -1,0 +1,116 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<mat-card-header class="km-no-padding">
+  <mat-card-title>{{title}}</mat-card-title>
+</mat-card-header>
+<form [formGroup]="form"
+      fxLayout="column">
+  <div formArrayName="taints">
+    @for (taint of taintArray.controls; track taint; let i = $index) {
+    <div [formGroupName]="i"
+         fxLayout="row"
+         fxLayoutGap="10px">
+      <mat-form-field fxFlex="29">
+        <mat-label>Key</mat-label>
+        <input matInput
+               (keyup)="check(i)"
+               name="key"
+               formControlName="key"
+               [ngClass]="{'km-value-changed':isTaintChanged(i)}">
+        @if (taint.get('key').errors?.validLabelKeyUniqueness) {
+        <mat-error>
+          Key is not unique.
+        </mat-error>
+        }
+        @if (taint.get('key').errors?.validLabelKeyPrefixPattern) {
+        <mat-error>
+          Prefix not allowed.
+        </mat-error>
+        }
+        @if (taint.get('key').errors?.validLabelKeyNamePattern) {
+        <mat-error>
+          Name not allowed.
+        </mat-error>
+        }
+        @if (taint.get('key').errors?.validLabelKeyPrefixLength) {
+        <mat-error>
+          Prefix is too long.
+        </mat-error>
+        }
+        @if (taint.get('key').errors?.validLabelKeyNameLength) {
+        <mat-error>
+          Name is too long.
+        </mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field fxFlex="29">
+        <mat-label>Value</mat-label>
+        <input matInput
+               (keyup)="check(i)"
+               name="value"
+               formControlName="value">
+        @if (taint.get('value').errors?.validLabelValuePattern) {
+        <mat-error>
+          Value not allowed.
+        </mat-error>
+        }
+        @if (taint.get('value').errors?.validLabelValueLength) {
+        <mat-error>
+          Value is too long.
+        </mat-error>
+        }
+        @if (taint.get('value').errors?.required) {
+        <mat-error>
+          Value is required.
+        </mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field fxFlex="29">
+        <mat-label>Effect</mat-label>
+        <mat-select formControlName="effect"
+                    disableOptionCentering
+                    (keyup)="check(i)"
+                    (change)="check(i)"
+                    (valueChange)="check(i)"
+                    (selectionChange)="check(i)">
+          @for (effect of availableEffects; track effect) {
+          <mat-option value="{{ effect }}">
+            {{ effect }}
+          </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (isRemovable(i)) {
+      <button mat-icon-button
+              class="delete-button"
+              (click)="deleteTaint(i)">
+        <i class="km-icon-mask km-icon-delete"></i>
+      </button>
+      }
+    </div>
+    }
+  </div>
+</form>
+@if (removedTaints.length) {
+<div class="removed-taint-form">
+  <p>Removed Node Taint</p>
+  @for (taint of removedTaints; track taint) {
+  <div>
+    <p>Key: {{taint?.key}}, Value: {{taint?.value}}, Effect: {{taint?.effect}}</p>
+  </div>
+  }
+</div>
+}

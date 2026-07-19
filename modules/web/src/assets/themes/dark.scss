@@ -1,0 +1,287 @@
+// Copyright 2021 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'sass:map';
+@use '@angular/material' as mat;
+@use 'mixins';
+@use 'theme/main';
+@use 'variables';
+@import 'images';
+
+$colors-dark: (
+  primary: #0072b0,
+  primary-hover: #008bd6,
+  primary-dark: #66c9ff,
+  secondary: #00b2b2,
+  secondary-hover: #099,
+  secondary-dark: #00c9c9,
+  indicator-green: #1dc67f,
+  indicator-orange: #f7b500,
+  indicator-red: #eb5757,
+  footer-text: rgb(255 255 255 / 85%),
+  sidenav-active: #66c9ff,
+  sidenav-background-hover: #202021,
+  collapsed-sidenav-background-hover: #464647,
+  sidenav-background-active: #003958,
+  sidenav-divider: #cad1d9,
+  side-nav-background-color: #000,
+  project-selector-hover: #464647,
+  tooltip-background: #0072b0,
+  option-background: #2b2b2c,
+  option-background-hover: #535354,
+  wizard-step-active: #66c9ff,
+  wizard-step-background: #b2e4ff,
+  wizard-step-background-active: #66c9ff,
+  scrollbar: #464647,
+  scrollbar-background: #000,
+  search-outline: #464647,
+  tab-divider: #464647,
+  muted-light: rgb(184 184 184 / 70.2%),
+  shadow: 0 4px 4px rgb(0 0 0 / 8%),
+  shadow-dark: (
+    0 2px 4px -1px rgb(0 0 0 / 20%),
+    0 4px 5px 0 rgb(0 0 0 / 14%),
+    0 1px 10px 0 rgb(0 0 0 / 12%),
+  ),
+  dropdown-hover: #464646,
+  swagger-ui-input-text-color: #4d555c,
+  terminal-toolbar-hover: #4d555b,
+  terminal-toolbar-color: #edeff0,
+  terminal-toolbar-background: #2b3035,
+  terminal-box-shadow: #000,
+  terminal-status-bar-color: #edeff0,
+  terminal-status-bar-background: #4d555c,
+  terminal-status-bar-border-color: #797979,
+  terminal-status-bar-reconnect-button: #2f70aa,
+  terminal-status-bar-close-button-hover: #484e54,
+  terminal-status-bar-button-border-color: #e0e3e5,
+  estimate-quota-bar: #4ec3ea,
+  progress-bar-buffer: #dfe3e5,
+  slide-toggle-handle-color: #bdbdbd,
+  hint-color: #b8b8b8b3,
+  announcement-banner-text: #edeff0,
+  header-text: rgb(255 255 255 / 85%),
+);
+$colors-dark-palette: mat.$m2-blue-palette;
+$colors-dark-palette: map.merge(
+  $colors-dark-palette,
+  (
+    500: #0072b0,
+  )
+);
+$theme-dark: mat.m2-define-dark-theme((
+  color: (
+    primary: mat.m2-define-palette($colors-dark-palette),
+    accent: mat.m2-define-palette(mat.$m2-light-blue-palette),
+    warn: mat.m2-define-palette(mat.$m2-pink-palette)
+  )
+));
+$background: map.get($theme-dark, background);
+$background: map.merge(
+  $background,
+  (
+    background: #000,
+    hover: #2d2d2e,
+    app-bar: #2b2b2c,
+    card: #202021,
+    dialog: #2b2b2c,
+  )
+);
+$theme-dark: map.merge(
+  $theme-dark,
+  (
+    background: $background,
+  )
+);
+$foreground: map.get($theme-dark, foreground);
+$foreground: map.merge(
+  $foreground,
+  (
+    text: rgb(255 255 255 / 85%),
+    secondary-text: #b8b8b8,
+    disabled-text: #636363,
+    disabled-checkbox: #656d75,
+    disabled-checkbox-checked: #7e868f,
+    disabled-checkbox-border: #b6b6b6,
+    disabled: #7c7c7c,
+    divider: #464647,
+    disabled-divider: #313132,
+  )
+);
+$theme-dark: map.merge(
+  $theme-dark,
+  (
+    foreground: $foreground,
+  )
+);
+
+@include mat.all-component-themes($theme-dark);
+@include main.theme($theme-dark, $colors-dark);
+
+html {
+  // Base surface colors - define once, reference everywhere
+  --km-surface-primary: #{map.get($colors-dark, sidenav-background-hover)}; // #202021
+  --km-surface-elevated: #{map.get($colors-dark, sidenav-background-hover)}; // #202021
+  --km-surface-dialog: #{map.get($background, dialog)}; // #2b2b2c
+  --km-surface-toolbar: #{map.get($background, app-bar)}; // #2b2b2c
+  --km-color-primary: #{map.get($colors-dark, primary)}; // #0072b0
+  --km-text-primary: #{map.get($colors-dark, footer-text)}; // rgb(255 255 255 / 85%)
+  --km-text-secondary: #{map.get($foreground, text)}; // rgb(255 255 255 / 85%)
+  --km-divider: #{map.get($colors-dark, tab-divider)}; // #464647
+
+  // Card styling
+  --mat-card-elevated-container-color: var(--km-surface-primary);
+  --mat-card-outlined-container-color: var(--km-surface-primary);
+  --mat-card-outlined-outline-color: rgb(255 255 255 / 12%);
+  --mat-card-filled-container-color: var(--km-surface-primary);
+
+  // Table styling
+  --mat-table-background-color: var(--km-surface-primary);
+  --mat-table-header-headline-color: var(--km-text-primary);
+  --mat-table-row-item-label-text-color: var(--km-text-primary);
+  --mat-table-row-item-outline-color: var(--km-divider);
+
+  // Dialog styling
+  --mat-dialog-container-color: var(--km-surface-dialog);
+  --mat-dialog-subhead-color: var(--km-text-secondary);
+
+  // Stepper styling
+  --mat-stepper-container-color: var(--km-surface-primary);
+
+  // Pagination styling
+  --mat-paginator-container-background-color: var(--km-surface-primary);
+
+  // Select styling
+  --mat-select-panel-background-color: var(--km-surface-elevated);
+
+  // Autocomplete styling
+  --mat-autocomplete-background-color: var(--km-surface-elevated);
+
+  // Menu styling
+  --mat-menu-container-color: var(--km-surface-elevated);
+
+  // Toolbar styling
+  --mat-toolbar-container-background-color: var(--km-surface-toolbar);
+
+  // Bottom sheet styling
+  --mat-bottom-sheet-container-background-color: var(--km-surface-dialog);
+
+  // Expansion panel styling
+  --mat-expansion-container-background-color: var(--km-surface-primary);
+
+  // Sidenav styling
+  --mat-sidenav-container-background-color: var(--km-surface-primary);
+
+  // Tree styling
+  --mat-tree-container-background-color: var(--km-surface-primary);
+
+  // Datepicker styling
+  --mat-datepicker-calendar-container-background-color: var(--km-surface-elevated);
+
+  // Timepicker styling
+  --mat-timepicker-container-background-color: var(--km-surface-elevated);
+
+  // FAB styling
+  --mat-fab-container-color: var(--km-color-primary);
+  --mat-fab-small-container-color: var(--km-color-primary);
+
+  // Button toggle styling
+  --mat-button-toggle-disabled-state-background-color: var(--km-surface-primary);
+
+  // Checkbox styling
+  --mat-checkbox-disabled-selected-checkmark-color: var(--km-surface-primary);
+
+  // Option styling (for select, autocomplete, etc.)
+  --mat-option-selected-state-label-text-color: var(--km-color-primary);
+  --mat-option-label-text-color: var(--km-text-primary);
+  --mat-option-hover-state-layer-color: rgb(255 255 255 / 8%);
+  --mat-option-focus-state-layer-color: rgb(255 255 255 / 8%);
+  --mat-option-selected-state-layer-color: rgb(255 255 255 / 8%);
+}
+
+// Make icons and logos white with 85% opacity.
+.km-provider-logo,
+.km-addon-logo,
+.km-addon-logo-disabled,
+.km-icon-randomize,
+.km-sidenav a:not(.active) i,
+.km-footer i,
+*[class*='km-os-image-'] {
+  /* stylelint-disable */
+  filter: invert(0.25) brightness(100) contrast(100);
+  /* stylelint-enable */
+
+  opacity: 85%;
+}
+
+.km-icon-mask {
+  background-color: rgb(255 255 255 / 85%);
+}
+
+.km-provider-logo-kubevirt {
+  @include mixins.provider-image('/assets/images/clouds/kubevirt-dark.svg', 95px, 30px);
+
+  filter: none;
+}
+
+.km-cni-image-cilium {
+  @include mixins.background-image('/assets/images/cni/cilium-dark.svg', 80px);
+}
+
+.km-icon-info {
+  @include mixins.background-image('/assets/images/icons/info-dark.svg', 16px);
+
+  opacity: 85%;
+}
+
+// Make selected option text light blue.
+.mat-mdc-option.mat-mdc-option-multiple.mdc-list-item--selected .mdc-list-item__primary-text {
+  --mat-option-selected-state-label-text-color: #{ map.get($colors-dark, primary-dark)};
+}
+
+.mat-mdc-option:hover:not(.mat-option-disabled),
+.mat-option:focus:not(.mat-option-disabled) {
+  background-color: map.get($colors-dark, dropdown-hover);
+}
+
+// Change background color of steppers in dialogs
+.mat-stepper-horizontal.km-stepper-in-dialog {
+  background-color: map.get($colors-dark, option-background);
+
+  .mat-button-toggle-group .mat-button-toggle:not(.mat-button-toggle-checked) {
+    background-color: map.get($colors-dark, option-background);
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #2b2b2c;
+  }
+}
+
+// Adjust chart styling.
+.ngx-charts {
+  text {
+    fill: #fff;
+  }
+}
+
+// Adjust Swagger styling.
+.km-swagger-container {
+  .swagger-ui {
+    .model-toggle {
+      /* stylelint-disable */
+      filter: invert(0.25) brightness(100) contrast(100);
+      /* stylelint-enable */
+    }
+  }
+}

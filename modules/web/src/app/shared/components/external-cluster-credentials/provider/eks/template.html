@@ -1,0 +1,121 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<form [formGroup]="form"
+      fxLayout="column">
+  <mat-form-field fxFlex>
+    <mat-label>Access Key ID</mat-label>
+    <input matInput
+           [formControlName]="Controls.AccessKeyID"
+           kmInputPassword
+           autocomplete="off"
+           required>
+    <mat-hint>
+      AWS Access Key ID with write access is required. To create one
+      <ng-container *ngTemplateOutlet="awsAccessKeysDocLink" />
+    </mat-hint>
+    @if (form.get(Controls.AccessKeyID).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field fxFlex>
+    <mat-label>Secret Access Key</mat-label>
+    <input matInput
+           [formControlName]="Controls.SecretAccessKey"
+           kmInputPassword
+           autocomplete="off"
+           required>
+
+    <mat-hint>
+      AWS Secret Access Key with write access is required. To create one
+      <ng-container *ngTemplateOutlet="awsAccessKeysDocLink" />
+    </mat-hint>
+    @if (form.get(Controls.SecretAccessKey).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+
+  <km-select hint="Select region from the dropdown list"
+             [label]="regionLabel"
+             [required]="true"
+             [options]="regions"
+             [formControlName]="Controls.Region" />
+
+  <mat-checkbox [formControlName]="Controls.UseAssumeRole">Enable Assume Role</mat-checkbox>
+
+  @if (isAssumeRoleEnabled) {
+  <mat-form-field fxFlex>
+    <mat-label>AssumeRole ARN</mat-label>
+    <input matInput
+           [formControlName]="Controls.AssumeRoleARN"
+           [name]="Controls.AssumeRoleARN"
+           kmInputPassword
+           autocomplete="off"
+           required>
+    <mat-hint>
+      Specify to use an assumed role to run the user cluster.
+      More information can be found
+      <a target="_blank"
+         rel="noopener"
+         fxLayout="row inline"
+         fxLayoutAlign=" center"
+         href="https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html">here <i class="km-icon-external-link"></i></a>.
+    </mat-hint>
+    @if (form.get(Controls.AssumeRoleARN).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+  <mat-form-field fxFlex>
+    <mat-label>AssumeRole External ID</mat-label>
+    <input matInput
+           [formControlName]="Controls.AssumeRoleExternalID"
+           [name]="Controls.AssumeRoleExternalID"
+           kmInputPassword
+           autocomplete="off"
+           required>
+    <mat-hint>
+      Specify to use an external ID in combination with the assumed role.
+      More information can be found
+      <a target="_blank"
+         rel="noopener"
+         fxLayout="row inline"
+         fxLayoutAlign=" center"
+         href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html">here <i class="km-icon-external-link"></i></a>.
+    </mat-hint>
+    @if (form.get(Controls.AssumeRoleExternalID).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+  }
+
+</form>
+
+<ng-template #awsAccessKeysDocLink>
+  <a target="_blank"
+     rel="noopener"
+     fxLayout="row inline"
+     fxLayoutAlign=" center"
+     href="http://docs.aws.amazon.com/general/latest/gr/managing-aws-access-keys.html">check <i class="km-icon-external-link"></i></a>.
+</ng-template>

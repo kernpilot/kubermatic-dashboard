@@ -1,0 +1,94 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div fxLayout="row"
+     fxLayoutAlign=" center">
+  <div fxFlex>
+    @if (!addons?.length) {
+    <p>
+      Addons are extensions provided by Kubermatic to expand cluster capabilities.
+      @if (!branding.hideDocumentationLinks) {
+      <a href="https://docs.kubermatic.com/kubermatic/{{editionVersion}}/architecture/concept/kkp-concepts/addons/"
+         target="_blank"
+         rel="noreferrer noopener"
+         fxLayout="row inline"
+         fxLayoutAlign=" center">
+        Learn more about Addons <i class="km-icon-external-link i-18"></i>.
+      </a>
+      }
+    </p>
+    }
+  </div>
+  <button mat-flat-button
+          color="quaternary"
+          [matTooltip]="getAddBtnTooltip()"
+          [disabled]="!isClusterReady"
+          (click)="add()">
+    <i class="km-icon-mask km-icon-add"
+       matButtonIcon></i>
+    <span>Install Addon</span>
+  </button>
+</div>
+
+@if (isClusterReady) {
+<div fxLayout="row wrap"
+     fxLayoutGap="10px">
+  @for (addon of addons; track addon) {
+  <div fxLayoutAlign="center center"
+       class="addon-container km-border">
+    <div fxFlex
+         fxLayoutAlign="center center">
+      @if (!hasLogo(addon.name)) {
+      <span [ngClass]="{'km-text-muted' : !!addon.deletionTimestamp}">{{addon.name}}</span>
+      }
+      @if (hasLogo(addon.name)) {
+      <img class="km-addon-logo"
+           [ngClass]="{'km-addon-logo-disabled' : !!addon.deletionTimestamp}"
+           [matTooltip]="getTooltip(addon)"
+           [src]="getAddonLogo(addon.name)">
+      }
+    </div>
+    <div [matMenuTriggerFor]="menu"
+         fxLayoutAlign="center center"
+         class="addon-menu">
+      <i class="km-icon-mask km-icon-points-menu"></i>
+    </div>
+    <mat-menu #menu="matMenu">
+      <button mat-menu-item
+              [disabled]="!canEdit || !!addon.deletionTimestamp"
+              (click)="edit(addon)">
+        <span>Edit</span>
+      </button>
+      <button mat-menu-item
+              [disabled]="!canEdit || !!addon.deletionTimestamp"
+              (click)="delete(addon)">
+        <span>Delete</span>
+      </button>
+    </mat-menu>
+  </div>
+  }
+  @if (addons.length === 0) {
+  <div class="no-data-warning"
+       fxFlex>
+    No addons installed.
+  </div>
+  }
+</div>
+}
+
+@if (!isClusterReady) {
+<km-loader />
+}

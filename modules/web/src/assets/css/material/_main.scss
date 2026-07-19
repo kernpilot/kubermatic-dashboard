@@ -1,0 +1,745 @@
+// Copyright 2021 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'variables';
+@use 'mixins';
+@import 'images';
+
+// Cards.
+mat-card.mat-mdc-card {
+  border-radius: variables.$border-radius;
+  box-shadow: variables.$border-box-shadow;
+  margin: 20px 0 0;
+  padding: 30px 0;
+
+  &:not([class*='mat-elevation-z']) {
+    box-shadow: variables.$border-box-shadow;
+  }
+
+  .mat-mdc-card-header {
+    align-self: unset !important;
+    border-radius: variables.$border-radius variables.$border-radius 0 0;
+    line-height: 16px;
+    margin: 0;
+
+    .mat-mdc-card-header-text {
+      flex: 1 1 auto;
+      margin: 0;
+    }
+
+    .mat-mdc-card-title {
+      font-size: variables.$font-size-card-title;
+      font-weight: normal;
+      margin-bottom: 12px;
+      padding: 0 0 10px 15px;
+
+      i {
+        font-size: variables.$font-size-subhead-lg;
+        margin: 0 20px;
+      }
+
+      .km-search-input {
+        i {
+          margin: 0;
+        }
+      }
+
+      &.cluster-name {
+        font-weight: 500;
+        padding: 0;
+
+        .cluster-health {
+          font-size: variables.$font-size-subhead;
+        }
+      }
+    }
+  }
+
+  .mat-mdc-card-content {
+    p {
+      font-size: variables.$font-size-caption;
+    }
+
+    button {
+      cursor: pointer;
+      font-size: variables.$font-size-body;
+      outline: none;
+    }
+  }
+}
+
+km-wizard {
+  mat-card.mat-mdc-card .mat-mdc-card-header .mat-mdc-card-title {
+    margin: 0;
+    padding: 26px 0 20px;
+  }
+}
+
+// Dialogs.
+.cdk-overlay-pane .mat-mdc-dialog-container {
+  box-shadow: variables.$border-box-shadow;
+}
+
+.mat-mdc-dialog-container {
+  .mat-mdc-dialog-title {
+    font-weight: 400;
+
+    .km-close-dialog-btn {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+    }
+  }
+
+  .mat-mdc-card-title {
+    font-weight: 400;
+  }
+
+  .mat-mdc-card-header-text {
+    margin: 0;
+    padding: 0;
+
+    .mat-mdc-dialog-title {
+      font-weight: normal;
+    }
+  }
+
+  .mat-mdc-dialog-content {
+    font-size: variables.$font-size-subhead;
+    font-weight: 400;
+    line-height: 24px;
+    max-height: variables.$dialog-content-max-height;
+    overflow-x: unset;
+    overflow-y: auto;
+
+    p {
+      margin: 0 0 8px;
+
+      &.km-dialog-context-description {
+        margin-bottom: 30px;
+      }
+    }
+
+    .km-dialog-warning {
+      display: flex;
+      margin: 16px 0;
+    }
+
+    .mat-datepicker-toggle-default-icon {
+      transform: scale(3);
+    }
+
+  }
+
+  .mat-mdc-dialog-actions {
+    justify-content: flex-end;
+    margin: 0;
+    padding-top: 20px;
+  }
+
+  .km-stepper-in-dialog {
+    padding: 20px 24px;
+  }
+
+  .mat-stepper-horizontal .mat-horizontal-content-container {
+    margin-right: -24px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-left: 1px; // To avoid clipping of tiles border in dialog e.g. install addon dialog
+    padding-right: 24px;
+  }
+}
+
+// Tables.
+.mat-mdc-table {
+  .mat-sort-header-container {
+    &.mat-sort-header-button {
+      border-bottom: none;
+      font-size: variables.$font-size-body;
+      font-weight: normal;
+      height: 40px;
+      line-height: 25px;
+      padding: 0;
+    }
+  }
+
+  [aria-sort='descending'] {
+    .mat-sort-header-arrow {
+      .mat-sort-header-indicator {
+        &::before {
+          content: '';
+          mask: url('/assets/images/icons/arrow-down.svg');
+          mask-position: center;
+          mask-repeat: no-repeat;
+          min-height: 8px;
+          min-width: 8px;
+          position: absolute;
+          top: -8px;
+        }
+      }
+    }
+  }
+
+  [aria-sort='ascending'] {
+    .mat-sort-header-arrow {
+      .mat-sort-header-indicator {
+        &::before {
+          content: '';
+          mask: url('/assets/images/icons/arrow-up.svg');
+          mask-position: center;
+          mask-repeat: no-repeat;
+          min-height: 8px;
+          min-width: 8px;
+          position: absolute;
+          top: 1px;
+        }
+      }
+    }
+  }
+
+  .mat-sort-header-arrow {
+    margin: auto 0 auto 6px;
+  }
+
+  .mat-mdc-icon-button {
+    @include mixins.size(35px, $force: true);
+
+    i {
+      @include mixins.size(35px);
+    }
+  }
+}
+
+/* stylelint-disable selector-class-pattern */
+.mat-column-status,
+.mat-column-stateArrow {
+  width: 8px;
+}
+/* stylelint-enable selector-class-pattern */
+
+// Steppers.
+.mat-stepper-horizontal {
+  @include mixins.breakpoint('small') {
+    .mat-horizontal-stepper-header-container {
+      display: none;
+    }
+  }
+
+  &#km-preset-dialog-stepper {
+    .mat-horizontal-stepper-header-container {
+      margin-bottom: 30px;
+    }
+  }
+
+  .mat-horizontal-content-container {
+    overflow: initial;
+    padding: 10px 0 0;
+  }
+
+  .mat-horizontal-stepper-header {
+    padding: 0;
+  }
+
+  .mat-stepper-horizontal-line {
+    margin: 0 20px;
+  }
+
+  .mat-horizontal-stepper-content {
+    // Required to disable wizard step animation without disabling all child animations
+    transform: none !important;
+    transition: none;
+
+    &[aria-expanded='false'] {
+      width: 0;
+    }
+  }
+}
+
+.mat-step-header {
+  max-height: 32px;
+  pointer-events: none;
+
+  .mat-step-icon {
+    margin-right: 14px;
+  }
+
+  .mat-step-icon-content {
+    font-size: variables.$font-size-body;
+  }
+
+  .mat-step-label {
+    font-size: variables.$font-size-subhead;
+    font-weight: 400;
+
+    &.mat-step-label-selected {
+      font-weight: 500;
+    }
+  }
+}
+
+// Menus.
+.mat-mdc-menu-content {
+  padding: 0;
+
+  button {
+    &.mat-mdc-menu-item {
+      font-size: variables.$font-size-body;
+      height: 48px;
+      line-height: 48px;
+      padding: 0 10px;
+
+      .mat-icon {
+        margin-right: 0;
+      }
+    }
+  }
+}
+
+.mat-mdc-menu-panel {
+  min-height: auto;
+
+  &.side-nav-sub-menu-item {
+    min-width: 200px;
+
+    .mat-mdc-menu-content {
+      padding-bottom: 10px;
+      padding-top: 10px;
+    }
+  }
+}
+
+.mat-nav-list {
+  .mdc-list-item__content {
+    padding: 0;
+  }
+}
+
+mat-list-item {
+  &.disabled {
+    i {
+      opacity: 30%;
+    }
+  }
+}
+
+// Forms.
+mat-form-field {
+  &.mat-mdc-form-field:not(.km-node-tags) {
+    margin-bottom: 10px;
+    width: 100%;
+
+    --mat-form-field-container-height: 45px;
+
+    .mat-mdc-form-field-text-prefix,
+    .mat-mdc-form-field-text-suffix {
+      .mat-mdc-icon-button {
+        @include mixins.size(32px, $force: true);
+
+        margin-top: -4px;
+      }
+    }
+
+    .mat-mdc-text-field-wrapper:not(:has(textarea)) {
+      height: var(--mat-form-field-container-height);
+      padding: 0 0 0 10px;
+    }
+
+    .mat-mdc-form-field-infix:has(.autocomplete-arrow) {
+      display: flex;
+
+      .autocomplete-arrow {
+        cursor: pointer;
+        margin: 4px 10px 0;
+      }
+    }
+
+    &.mat-primary {
+      .mat-mdc-select-trigger {
+        display: flex;
+
+        .mat-mdc-select-arrow-wrapper {
+          margin-left: 5px;
+          margin-right: 10px;
+
+          .mat-mdc-select-arrow {
+            @include mixins.size(14px);
+
+            display: inline-block;
+            mask: url('/assets/images/icons/arrow-down.svg');
+            mask-repeat: no-repeat;
+            mask-size: contain;
+          }
+        }
+      }
+    }
+
+    &.mat-focused {
+      &.mat-primary {
+        .mat-mdc-select-arrow-wrapper {
+          .mat-mdc-select-arrow {
+            @include mixins.size(14px);
+
+            transform: rotate(180deg);
+          }
+        }
+      }
+    }
+
+    .mat-mdc-form-field-flex {
+      align-items: center;
+    }
+  }
+
+  &.km-dropdown-without-subtext {
+    .mat-mdc-select-arrow-wrapper {
+      height: 20px;
+    }
+  }
+
+  &.mat-form-field-appearance-outline {
+    .mat-mdc-form-field-subscript-wrapper {
+      i {
+        @include mixins.size(16px, 16px, true);
+      }
+    }
+  }
+
+  .mat-mdc-form-field-icon-suffix {
+    .mdc-icon-button {
+      @include mixins.size(30px);
+
+      margin-right: 5px;
+    }
+  }
+
+  .mat-mdc-select {
+    .mdc-icon-button {
+      @include mixins.size(30px);
+    }
+  }
+
+  &.km-node-tags {
+    --mat-form-field-container-height: 45px;
+    --mat-form-field-container-vertical-padding: 0;
+
+    margin-bottom: 10px;
+    width: 100%;
+
+    .mat-mdc-text-field-wrapper {
+      .mat-mdc-form-field-infix {
+        min-height: var(--mat-form-field-container-height);
+
+        .mat-mdc-chip-grid {
+          margin-top: 15px;
+
+          input {
+            margin-bottom: 5px;
+          }
+        }
+      }
+    }
+  }
+
+  &.mat-mdc-form-field-type-mat-select, &.mat-mdc-form-field-type-mat-input {
+    .mdc-text-field--no-label {
+      .mat-mdc-form-field-infix {
+        align-items: center;
+        display: flex;
+        padding-bottom: 0;
+        padding-top: 0;
+      }
+    }
+  }
+}
+
+mat-hint,
+mat-error {
+  font-size: 75%;
+}
+
+.mat-mdc-select {
+  width: fit-content;
+
+  .mat-mdc-select-value {
+    max-width: 100%;
+    min-width: 2ch;
+  }
+
+  .mat-mdc-select-arrow {
+    display: none;
+  }
+
+  .mat-mdc-select-value-text {
+    font-size: variables.$font-size-subhead;
+    line-height: 20px;
+  }
+
+  .mat-mdc-select-placeholder {
+    font-size: variables.$font-size-subhead;
+    line-height: 18px;
+    opacity: 70%;
+  }
+
+  .mat-mdc-icon-button {
+    height: 30px;
+    line-height: 30px;
+    width: 30px;
+  }
+}
+
+.mat-icon-password-show-button {
+  background-color: transparent;
+  border: none;
+  margin-right: 15px;
+
+  &:hover {
+    cursor: pointer;
+  }
+}
+
+.mat-mdc-select-panel {
+  &.project-selector-dropdown {
+    max-height: 370px;
+  }
+}
+
+.cdk-overlay-pane:has(.project-selector-dropdown) {
+  margin-top: 10px;
+  width: fit-content !important;
+}
+
+.mat-mdc-optgroup-label {
+  font-size: variables.$font-size-caption !important;
+  font-weight: normal !important;
+  height: 35px;
+  line-height: 35px;
+  padding-left: 10px;
+}
+
+// Buttons, sliders and checkboxes.
+a,
+button {
+  &.mat-mdc-button,
+  &.mat-mdc-unelevated-button,
+  &.mat-mdc-raised-button,
+  &.mat-mdc-icon-button {
+    --mat-icon-button-state-layer-color: none;
+    --mat-icon-button-state-layer-size: none;
+
+    font-size: variables.$font-size-subhead;
+    height: 45px;
+    line-height: 45px;
+    min-width: unset;
+    white-space: nowrap;
+
+    &:not(:first-child) {
+      margin-left: 10px;
+    }
+
+    &.mat-quaternary {
+      font-weight: normal;
+    }
+
+    .mdc-button__label {
+      span {
+        margin-left: 10px;
+      }
+    }
+
+    .mat-mdc-button-touch-target {
+      height: 45px;
+    }
+  }
+
+  &.mat-mdc-icon-button {
+    --mat-icon-button-state-layer-color: none;
+    --mat-icon-button-state-layer-size: 45px !important;
+
+    bottom: 2px;
+  }
+}
+
+button {
+  &.mat-mdc-icon-button {
+    @include mixins.size(45px);
+
+    align-items: center;
+    border-radius: variables.$border-radius;
+    display: flex;
+    justify-content: center;
+
+    &[disabled] {
+      * {
+        cursor: auto;
+      }
+    }
+
+    a {
+      display: flex;
+      justify-content: center;
+    }
+
+    &:disabled a {
+      cursor: default;
+      pointer-events: none;
+      text-decoration: none;
+    }
+  }
+}
+
+.mat-button-toggle-group {
+  &.mat-button-toggle-group-appearance-standard {
+    border: none;
+    box-shadow: none;
+
+    .mat-button-toggle-label-content {
+      padding: 0 10px;
+    }
+  }
+
+  &:hover {
+    border: none;
+    transition: variables.$transition-all;
+  }
+
+  .mat-button-toggle {
+    @include mixins.size(150px, 45px, true);
+
+    align-items: center;
+    border-radius: variables.$border-radius;
+    border-style: solid;
+    border-width: 1px;
+    display: flex;
+    margin: 0 10px 10px 0;
+  }
+
+  .mat-button-toggle-label-content {
+    @include mixins.size(100%);
+
+    align-items: center;
+    display: flex;
+    font-size: variables.$font-size-subhead;
+    font-weight: normal;
+    justify-content: center;
+
+    .mat-pseudo-checkbox {
+      display: none;
+    }
+  }
+
+  .mat-button-toggle-button {
+    height: 100%;
+  }
+}
+
+/* stylelint-disable selector-class-pattern */
+.mat-mdc-slide-toggle {
+  --mat-slide-toggle-track-width: 50px;
+  --mat-slide-toggle-track-height: 24px;
+  --mat-slide-toggle-track-shape: 50px;
+
+  .mdc-switch {
+    .mdc-switch__handle-track {
+      left: 2px;
+
+      .mdc-switch__icons {
+        display: none;
+      }
+    }
+
+    &.mdc-switch--selected {
+      .mdc-switch__handle-track {
+        left: -2px;
+      }
+    }
+  }
+}
+/* stylelint-enable selector-class-pattern */
+
+// Chips.
+.mat-mdc-chip {
+  border-radius: variables.$border-radius;
+
+  --mat-chip-container-height: 24px !important;
+  --mat-chip-container-shape-radius: 3px !important;
+
+  .mdc-evolution-chip__action {
+    box-shadow: none !important;
+    cursor: default;
+  }
+
+  div {
+    padding: 0 10px;
+  }
+
+  .mdc-evolution-chip__action--primary {
+    border-radius: variables.$border-radius;
+    padding: 0 !important;
+  }
+
+  div.mat-chip-ripple {
+    display: none;
+  }
+}
+
+.mat-mdc-chip-action-label {
+  display: flex;
+}
+
+.km-chip-list-with-input {
+  .mat-mdc-chip-row {
+    bottom: 5px;
+    padding: 0 10px;
+
+    i:hover {
+      cursor: pointer;
+    }
+  }
+}
+
+mat-chip-grid {
+  cursor: default;
+
+  &:not(.km-chip-list-with-input) {
+    pointer-events: none;
+  }
+}
+
+// Tooltips.
+mat-tooltip-component .mat-mdc-tooltip {
+  font-size: variables.$font-size-caption;
+  margin-top: 5px;
+  word-wrap: break-word;
+}
+
+.mat-mdc-tooltip-panel {
+  height: 32px;
+}
+
+// Tab.
+.mat-mdc-tab-list {
+  .mat-mdc-tab {
+    opacity: 100%;
+
+    .mdc-tab__content {
+      font-size: 16px;
+    }
+  }
+}
+
+// Progress bar
+/* stylelint-disable-next-line selector-class-pattern */
+.mat-mdc-progress-bar .mdc-linear-progress__buffer-dots {
+  animation: none;
+}

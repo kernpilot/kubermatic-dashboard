@@ -1,0 +1,120 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div fxLayout="column">
+  <div fxLayout="row wrap"
+       class="info-container">
+    <span class="km-provider-logo km-provider-logo-{{provider}}"></span>
+    @if (mode === Mode.Create) {
+    <km-property>
+      <div key>Preset Name</div>
+      <div value>{{preset.metadata.name}}</div>
+    </km-property>
+    }
+    @if (preset?.spec?.requiredEmails) {
+    <km-property>
+      <div key>Restrict Preset Group to Domain(s)</div>
+      <div value>{{preset.spec.requiredEmails}}</div>
+    </km-property>
+    }
+    @if (!preset?.spec?.enabled) {
+    <km-property-boolean [value]="!preset.spec.enabled"
+                         label="Hide upon creation" />
+    }
+  </div>
+
+  <form [formGroup]="form"
+        fxFlex="100%"
+        fxLayout="column">
+    <div>
+      @switch (provider) {
+      @case (Providers.AKS) {
+      <km-aks-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.ALIBABA) {
+      <km-alibaba-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.ANEXIA) {
+      <km-anexia-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.AWS) {
+      <km-aws-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.AZURE) {
+      <km-azure-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.DIGITALOCEAN) {
+      <km-digitalocean-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.EKS) {
+      <km-eks-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.GCP) {
+      <km-gcp-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.GKE) {
+      <km-gke-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.HETZNER) {
+      <km-hetzner-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.KUBEVIRT) {
+      <km-kubevirt-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.OPENSTACK) {
+      <km-openstack-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.NUTANIX) {
+      <km-nutanix-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.VSPHERE) {
+      <km-vsphere-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.VMWARECLOUDDIRECTOR) {
+      <km-vmware-cloud-director-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      @case (Providers.BAREMETAL) {
+      <km-baremetal-settings [formControl]="form.get(Controls.Settings)" />
+      }
+      }
+    </div>
+
+    @if (!isExternal()) {
+    @if (isProvider(Providers.OPENSTACK)) {
+    <mat-checkbox [formControlName]="Controls.IsCustomizable">
+      Customizable Preset
+      <i class="km-icon-info km-pointer"
+         matTooltip="Allow customization of non-credential settings during cluster creation."></i>
+    </mat-checkbox>
+    }
+    <div class="optional-section">Optional Restrictions</div>
+    <div fxLayout="column"
+         fxLayoutGap="10px">
+      <km-autocomplete label="Restrict to Datacenter"
+                       [formControlName]="Controls.Datacenter"
+                       [isLoading]="isLoadingDatacenters"
+                       [options]="datacenters" />
+    </div>
+    }
+  </form>
+  @if (provider === Providers.ANEXIA) {
+  <div fxLayout="row"
+       fxLayoutAlign=" center">
+    <i class="km-icon-warning"></i>
+    <div>{{ ANEXIA_DEPRECATED_MESSAGE }}</div>
+  </div>
+  }
+</div>

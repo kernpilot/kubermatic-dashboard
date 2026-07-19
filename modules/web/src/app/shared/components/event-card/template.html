@@ -1,0 +1,44 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<mat-card appearance="outlined"
+          [ngClass]="{'toggled-events': isShowEvents}">
+  <mat-card-header (click)="toggleEvents()">
+    <mat-card-title>
+      <div fxLayout="row"
+           fxLayoutAlign="space-between center">
+        <div>
+          <i class="km-icon-mask"
+             [ngClass]="isShowEvents ? 'km-icon-mask km-icon-arrow-up' : 'km-icon-mask km-icon-arrow-down'"></i>
+          <span>Events</span>
+        </div>
+        <div class="events-title"
+             fxLayout="row"
+             fxLayoutAlign=" center"
+             fxLayoutGap="10px">
+          <i [ngClass]="getTypeIcon()"></i>
+          <span>{{events.length}} event@if (events.length !== 1) {
+            s
+            }</span>
+        </div>
+      </div>
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    @if (isShowEvents) {
+    <km-event-list [events]="events" />
+    }
+  </mat-card-content>
+</mat-card>

@@ -1,0 +1,70 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<km-dialog-title>{{title}}</km-dialog-title>
+<mat-dialog-content>
+  <form [formGroup]="form"
+        id="add-ssh-key-form">
+    <mat-form-field class="km-ssh-key-input">
+      <mat-label>Name</mat-label>
+      <input id="name"
+             matInput
+             required
+             [formControlName]="controls.Name"
+             type="text"
+             autocomplete="off"
+             kmAutofocus>
+      @if (form.get(controls.Name).hasError('required')) {
+      <mat-error>
+        <strong>Required</strong>
+      </mat-error>
+      }
+      @if (form.get(controls.Name).hasError('pattern')) {
+      <mat-error>
+        Name cannot contain special characters like | " &lt; &gt; &lbrace; &rbrace; [ ] ` \ ' ; &
+      </mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="km-ssh-key-textarea">
+      <mat-label>Public SSH Key</mat-label>
+      <textarea id="key"
+                matInput
+                required
+                [formControlName]="controls.Key"
+                type="text"
+                class="form-control"
+                (change)="onNewKeyTextChanged()"></textarea>
+      @if (form.get(controls.Key).hasError('required')) {
+      <mat-error>
+        <strong>Required</strong>
+      </mat-error>
+      }
+      @if (form.get(controls.Key).hasError('validSSHKey')) {
+      <mat-error>
+        SSH Key has invalid form. Use OpenSSH format.
+      </mat-error>
+      }
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <km-button id="km-add-ssh-key-dialog-save"
+             icon="km-icon-add"
+             label="Add SSH Key"
+             [disabled]="!form.valid"
+             [observable]="getObservable()"
+             (next)="onNext($event)" />
+</mat-dialog-actions>

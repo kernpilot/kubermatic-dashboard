@@ -1,0 +1,992 @@
+// Copyright 2021 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'variables';
+@use 'mixins';
+@use 'machine-type-selector';
+
+html,
+body {
+  background-color: #edeff0;
+  color: #4d555c;
+  font-family: var(--km-font-primary, #{variables.$font-primary});
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  width: 100%;
+}
+
+a {
+  outline: none;
+  text-decoration: none;
+}
+
+hr {
+  border-style: solid;
+  border-width: 1px 0 0;
+}
+
+::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-clip: content-box;
+  border: 2px solid;
+  border-radius: 3px;
+}
+
+.km-empty-list-msg {
+  border-top: 1px solid;
+  font-size: variables.$font-size-body;
+  padding: 15px 30px;
+  text-align: center;
+}
+
+.km-no-data-message {
+  font-size: variables.$font-size-body;
+  padding: 30px;
+  text-align: center;
+}
+
+.mat-mdc-card {
+  .km-mat-row {
+    .km-mat-footer-row {
+      border-bottom-left-radius: variables.$border-radius;
+      border-bottom-right-radius: variables.$border-radius;
+      border-style: solid dashed dashed;
+      border-width: 1px;
+      padding: 0;
+
+      button {
+        font-size: variables.$font-size-subhead;
+        font-weight: normal;
+        line-height: 40px;
+        width: 100%;
+      }
+    }
+  }
+}
+
+.km-expand-button {
+  font-size: variables.$font-size-caption;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.km-pointer {
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.km-text-bolder {
+  font-weight: bolder;
+}
+
+.km-hidden {
+  display: none;
+}
+
+.km-copy {
+  cursor: pointer;
+  outline: none;
+}
+
+.km-full-width {
+  width: 100%;
+}
+
+.km-header {
+  font-size: variables.$font-size-card-title;
+  line-height: 16px;
+  margin: 12px 0;
+  padding: 8px 0 16px;
+
+  &.sub {
+    font-size: variables.$font-size-subhead;
+  }
+}
+
+.km-table-dropdown {
+  margin: 0;
+  padding: 0;
+
+  tr:first-child td:first-child {
+    border-top-left-radius: variables.$border-radius;
+  }
+
+  tr:first-child td:last-child {
+    border-top-right-radius: variables.$border-radius;
+  }
+}
+
+.km-table-with-frame {
+  tr:last-child td:last-child {
+    border-bottom-right-radius: variables.$border-radius;
+  }
+
+  tr:last-child td:first-child {
+    border-bottom-left-radius: variables.$border-radius;
+  }
+
+  tr:first-child td:first-child {
+    border-top-left-radius: variables.$border-radius;
+  }
+
+  tr:first-child td:last-child {
+    border-top-right-radius: variables.$border-radius;
+  }
+}
+
+.km-panel {
+  .panel {
+    border-radius: variables.$border-radius;
+    overflow: hidden;
+    position: fixed;
+    z-index: 3;
+  }
+}
+
+.km-icon-info {
+  margin: -2px 8px;
+}
+
+.km-icon-check,
+.km-icon-running,
+.km-icon-pending,
+.km-icon-disabled,
+.km-icon-unknown,
+.km-icon-failed,
+.km-icon-kubernetes,
+.km-icon-sun,
+.km-icon-moon {
+  margin-right: 8px;
+}
+
+.km-spinner {
+  bottom: 0;
+  left: 0;
+  margin: 0 auto;
+  right: 0;
+
+  &.km-with-spacing {
+    margin-top: 20px;
+  }
+}
+
+.km-content-wrap {
+  display: flex;
+  flex-flow: row wrap;
+  padding: 8px 60px 0;
+
+  > * {
+    height: 62px;
+    margin-bottom: 10px;
+  }
+}
+
+.km-no-padding {
+  padding: 0 !important;
+}
+
+.km-no-margin {
+  margin: 0 !important;
+}
+
+.km-code-block {
+  border-radius: variables.$border-radius;
+  font-family: variables.$font-primary-mono;
+  font-size: variables.$font-size-body;
+  line-height: 20px;
+  margin: 16px 0;
+  padding: 12px 16px;
+}
+
+.km-vertical-center {
+  vertical-align: middle;
+}
+
+.km-notification-overlay {
+  bottom: 65px;
+  position: relative !important;
+  right: 32px;
+
+  .km-notification {
+    &.mat-mdc-snack-bar-container {
+      border-radius: variables.$border-radius;
+      box-shadow: variables.$notification-shadow;
+      margin: 0;
+      max-height: variables.$notification-max-height;
+      max-width: variables.$notification-width;
+      min-height: variables.$notification-min-height;
+      min-width: variables.$notification-width;
+      overflow: hidden;
+      padding: 0;
+
+      div {
+        height: 100%;
+      }
+
+      /* stylelint-disable-next-line selector-class-pattern */
+      .mdc-snackbar__surface {
+        padding: 0;
+        width: 100%;
+
+        .mat-mdc-snack-bar-label {
+          padding: 0;
+        }
+      }
+    }
+  }
+}
+
+.km-table {
+  border-collapse: separate;
+  border-radius: variables.$border-radius;
+  border-spacing: 0;
+  width: 100%;
+
+  tr:first-child th:first-child {
+    border-top-left-radius: variables.$border-radius;
+  }
+
+  tr:first-child th:last-child {
+    border-top-right-radius: variables.$border-radius;
+  }
+
+  td:first-child:not(.km-serviceaccount-token):not(.km-key-publickey):not(.km-provider-datacenter-details) {
+    padding-left: 30px;
+  }
+
+  td:last-child:not(.km-serviceaccount-token):not(.km-key-publickey):not(.km-provider-datacenter-details) {
+    padding-right: 30px;
+  }
+
+  .km-header-row {
+    border-collapse: separate;
+    border-radius: variables.$border-radius;
+    line-height: 40px;
+  }
+
+  .km-header-cell {
+    border-bottom: none;
+    font-size: variables.$font-size-body;
+    font-weight: normal;
+    height: 40px;
+    line-height: 25px;
+    padding: 0;
+
+    // Generate width classes like &.p-5, &.p-10 etc., up to &.p-95.
+    @for $i from 1 through 19 {
+      $w: 5 * $i;
+
+      &.p-#{$w} {
+        width: #{$w}#{'%'};
+      }
+    }
+
+    &:last-of-type {
+      padding-right: 30px;
+    }
+
+    &:first-of-type {
+      padding-left: 30px;
+    }
+  }
+
+  .mat-mdc-header-row {
+    height: auto;
+    line-height: 40px;
+  }
+
+  td.mat-mdc-cell {
+    border-bottom-width: 0;
+    font-size: variables.$font-size-subhead;
+    line-height: 25px;
+    padding: 0;
+
+    &:last-of-type {
+      padding-right: 16px;
+    }
+
+    &:first-of-type {
+      padding-right: 16px;
+    }
+
+    &.mat-column-provider {
+      padding: 4px 0;
+    }
+  }
+
+  .km-table-actions {
+    button {
+      margin-left: 5px;
+      opacity: 75%;
+      transition:
+        visibility 0s 0s,
+        opacity 0s ease-out;
+    }
+  }
+
+  tr:hover {
+    button {
+      opacity: 100%;
+      transition: opacity 0.1s ease-out;
+    }
+  }
+
+  tr.km-selected {
+    button {
+      opacity: 30%;
+      pointer-events: none;
+    }
+  }
+}
+
+.km-version-picker {
+  .mat-mdc-form-field {
+    .mat-mdc-form-field-flex {
+      height: 49px;
+    }
+
+    .mdc-notched-outline__leading {
+      border-radius: 0;
+    }
+
+    .mat-mdc-text-field-wrapper {
+      padding-bottom: 2px;
+    }
+  }
+
+  &.km-version-picker-enabled {
+    &:hover {
+      * {
+        cursor: pointer;
+      }
+    }
+  }
+
+  &.km-version-picker-disabled {
+    mat-form-field.mat-primary {
+      .mat-mdc-select-arrow-wrapper {
+        .mat-mdc-select-arrow {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
+.cni-version {
+  &.disabled {
+    mat-form-field.mat-primary {
+      .mat-mdc-select-arrow-wrapper {
+        .mat-mdc-select-arrow {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
+.km-number-stepper-input {
+  &.mat-mdc-form-field {
+    &:not(.message) {
+      .mdc-notched-outline__trailing {
+        border-radius: 0;
+      }
+    }
+
+    .mat-mdc-form-text-infix {
+      width: 100%;
+    }
+  }
+}
+
+km-dashboard {
+  display: flex;
+
+  & > *:not(router-outlet) {
+    flex: 1 1 auto;
+    padding: variables.$content-padding;
+  }
+}
+
+.km-update-available-badge {
+  border-radius: variables.$border-radius;
+  cursor: default;
+  font-size: variables.$font-size-body;
+  line-height: 18px;
+  margin-left: 12px;
+  padding: 0 4px;
+  user-select: none;
+
+  .km-icon-update-available-arrow {
+    margin: 0 6px -2px 2px;
+  }
+}
+
+.km-admission-plugin-warning {
+  margin-bottom: 24px;
+
+  i.km-icon-warning {
+    margin: 0 8px;
+  }
+
+  p {
+    font-size: variables.$font-size-body;
+    margin: 0;
+  }
+}
+
+.km-wizard-summary {
+  km-property-boolean {
+    km-property {
+      .container {
+        .label {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
+.km-label-primary {
+  align-self: center;
+  border-radius: variables.$border-radius;
+  border-style: solid;
+  border-width: 1px;
+  font-size: variables.$font-size-body;
+  height: 22px;
+  line-height: 12px;
+  margin: 4px 0;
+  max-width: 120px;
+  padding: 4px;
+  white-space: nowrap;
+}
+
+.km-select-ellipsis {
+  .mat-mdc-select-trigger {
+    height: 18px;
+  }
+
+  mat-select-trigger {
+    align-items: center;
+
+    > div:first-of-type {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .mat-mdc-select-value {
+    align-self: center;
+  }
+}
+
+.km-search-input {
+  &.mat-mdc-form-field {
+    // margin: -10px 10px -30px 0;
+    max-height: 30px;
+    width: 280px;
+
+    .mat-mdc-text-field-wrapper {
+      margin: unset;
+      padding: unset;
+
+      .mat-mdc-form-field-flex {
+        padding-left: 10px;
+
+        .mat-mdc-form-field-infix {
+          padding-left: 10px;
+        }
+      }
+    }
+  }
+}
+
+.filters {
+  font-size: 16px;
+
+  .filter-title {
+    margin: -20px 8px 0 0;
+  }
+
+  .mat-mdc-form-field {
+    width: 250px;
+  }
+}
+
+.cdk-overlay-pane {
+  &.km-preset-dialog {
+    max-height: 660px;
+    overflow: hidden;
+
+    .mat-mdc-dialog-container {
+      min-width: 600px;
+      overflow: hidden;
+    }
+
+    .mat-horizontal-content-container {
+      margin-right: -24px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 24px;
+    }
+  }
+
+  &.km-quota-dialog {
+    .km-quota-inputs {
+      .mat-mdc-form-field {
+        min-width: 135px;
+      }
+    }
+  }
+
+  &.km-announcements-dialog {
+    max-width: 1000px !important;
+    min-width: 1000px !important;
+  }
+}
+
+.km-quota-inputs {
+  km-number-stepper {
+    max-width: 30%;
+    position: relative;
+    top: 10px;
+
+    &:not(:first-child) {
+      margin-left: 10px;
+    }
+  }
+}
+
+.km-radio-group-label {
+  font-weight: 500;
+  padding: 12px 0;
+}
+
+.km-radio-button {
+  padding-bottom: 15px;
+}
+
+.mdc-radio {
+  padding: 0 5px 0 0 !important;
+}
+
+.km-radio-button-title {
+  font-weight: 500;
+}
+
+.km-radio-button-description {
+  font-size: variables.$font-size-body;
+  white-space: normal;
+}
+
+km-cni-version {
+  .mat-mdc-form-field {
+    .mat-mdc-form-field-flex {
+      height: 49px;
+
+      .mat-mdc-form-field-infix {
+        width: 120px;
+      }
+    }
+
+    .mdc-notched-outline__leading {
+      border-radius: 0;
+    }
+  }
+
+  .enabled:hover {
+    * {
+      cursor: pointer;
+    }
+  }
+
+  .disabled {
+    mat-form-field.mat-primary {
+      .mat-mdc-select-arrow-wrapper {
+        .mat-mdc-select-arrow {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
+.km-transition-none {
+  transition: none;
+}
+
+.km-quota-widget {
+  width: 100%;
+
+  km-property {
+    width: 100%;
+
+    .container {
+      margin: 0 10px 0 0;
+      width: 100%;
+
+      .value {
+        margin-top: 0 !important;
+        min-height: 0 !important;
+      }
+    }
+  }
+}
+
+.km-quota-extended-progress-bar-tooltip {
+  max-width: unset !important;
+}
+
+.km-external-cluster-delete-confirmation {
+  .mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+      padding-bottom: 12px;
+    }
+  }
+}
+
+.km-option-divider.mat-divider {
+  margin: 10px 0;
+}
+
+.km-machine-deployment-list {
+  .mat-mdc-card {
+    .mat-mdc-card-header {
+      .mat-mdc-card-title {
+        button {
+          min-width: 245px;
+          top: 0
+        }
+
+        i {
+          margin: 0;
+        }
+      }
+    }
+  }
+}
+
+.km-machine-deployment-details {
+  .km-quota-widget-container {
+    max-width: 500px;
+  }
+}
+
+.km-cluster-summary {
+  .applications-container {
+    margin-top: 0 !important;
+
+    .application-cards-view {
+      .application-card {
+        @include mixins.size(240px, null, true);
+      }
+    }
+  }
+}
+
+.km-card {
+  &.mat-mdc-card:first-child &:not(.keep-margin) {
+    margin-top: 0;
+  }
+
+  .header {
+    padding: 0 30px;
+  }
+
+  .mat-mdc-card-content {
+    margin-top: 30px;
+  }
+}
+
+.km-disabled {
+  cursor: default;
+  opacity: 40%;
+  pointer-events: none;
+}
+
+// style for kmValueChangedIndicator directive
+
+.km-value-changed {
+  position: relative;
+
+  &:not(.mat-button-toggle-group):not(.radio-group-column):not(.mat-mdc-select)::after {
+    border-bottom-left-radius: variables.$border-radius;
+    border-top-left-radius: variables.$border-radius;
+    content: '';
+    height: 60%;
+    left: 0;
+    position: absolute;
+    top: 4px;
+    width: 5px;
+  }
+
+  &:has(.km-chip-list-with-input)::after {
+    height: 100% !important;
+    left: -15px !important;
+    top: 0 !important;
+  }
+
+  &.mat-mdc-checkbox::after {
+    left: -12px !important;
+    top: 8px !important;
+  }
+
+  &.mat-mdc-radio-group:not(.radio-group-column)::after {
+    height: 80% !important;
+    left: -12px !important;
+    top: 3px !important;
+  }
+
+  &.radio-group-column {
+    .mat-mdc-radio-checked {
+      .mdc-radio {
+        position: relative;
+
+        &::after {
+          border-bottom-left-radius: variables.$border-radius;
+          border-top-left-radius: variables.$border-radius;
+          content: '';
+          height: 100%;
+          left: -12px;
+          position: absolute;
+          width: 5px;
+        }
+      }
+    }
+  }
+
+  &.mat-mdc-slide-toggle::after {
+    height: 95% !important;
+    left: -12px !important;
+    top: 1px !important;
+  }
+
+  &.ngx-monaco-editor::after {
+    height: 98% !important;
+    top: 0 !important;
+  }
+
+  .mat-button-toggle-checked::after {
+    border-bottom-left-radius: variables.$border-radius;
+    border-top-left-radius: variables.$border-radius;
+    content: '';
+    height: 100%;
+    position: absolute;
+    width: 5px;
+  }
+}
+
+.mat-mdc-form-field-infix:not(:has(textarea)):has(> .km-value-changed),
+.mat-mdc-form-field-infix:has(> textarea):has(> .km-value-changed) {
+  &::after {
+    border-bottom-left-radius: variables.$border-radius;
+    border-top-left-radius: variables.$border-radius;
+    content: '';
+    height: 44px;
+    left: -10px;
+    position: absolute;
+    top: 0;
+    width: 5px;
+  }
+
+  &:has(> textarea)::after {
+    height: 81px;
+  }
+}
+
+// side-nav-field content styling
+
+.collapse-sidenav {
+  overflow-x: hidden;
+  width: variables.$sidenav-width-collapsed !important;
+
+  .menu-item a i {
+    margin-right: 0;
+  }
+}
+
+.sub-menu-item {
+  position: relative;
+  z-index: 1;
+
+  a {
+    margin-left: 22px;
+    padding: 10px 5px 10px 30px;
+
+    &:hover {
+      border-radius: variables.$border-radius;
+    }
+  }
+
+  &.active > a::after {
+    content: '';
+    height: 60%;
+    left: 22px;
+    position: absolute;
+    top: 20%;
+    width: 3px;
+  }
+}
+
+km-side-nav-field .sub-menu-item:last-child {
+  padding-bottom: 10px;
+
+  &.active > a::after {
+    height: 45%;
+    top: 18%;
+  }
+}
+
+.menu-title {
+  border-bottom: 2px solid gray;
+}
+
+.collapsed-sub-menu-item {
+  height: 30px;
+  margin: 0 10px 0 15px;
+  padding: 10px 0 10px 15px;
+  position: relative;
+
+  &:hover {
+    border-radius: variables.$border-radius;
+  }
+
+  &.active::after {
+    content: '';
+    height: 60%;
+    left: 0;
+    position: absolute;
+    top: 20%;
+    width: 3px;
+  }
+}
+
+// go back button side nav bar
+
+.go-back:not(.go-back-collapsed) {
+  bottom: (1.5 * variables.$sidenav-item-margin);
+  height: variables.$sidenav-item-height;
+  margin-top: 15px;
+  position: relative;
+  width: variables.$sidenav-width;
+  z-index: 4;
+
+  a {
+    border-radius: variables.$border-radius;
+    display: flex;
+    font-size: variables.$font-size-subhead;
+    height: variables.$sidenav-item-height;
+    padding: variables.$sidenav-item-margin;
+    text-decoration: none;
+
+    i {
+      @include mixins.size(24px);
+
+      margin-right: 20px;
+
+      &.km-icon-arrow-left {
+        @include mixins.size(16px);
+      }
+    }
+  }
+}
+
+.go-back-collapsed {
+  bottom: (1.5 * variables.$sidenav-item-margin);
+  margin-top: 15px;
+  padding: variables.$sidenav-item-margin;
+  position: relative;
+  width: variables.$sidenav-width-collapsed;
+}
+
+.km-button-toggle-group {
+  &.mat-button-toggle-group {
+    .mat-button-toggle {
+      border-radius: 0;
+      margin-right: 0;
+      max-height: 45px;
+      min-height: 45px;
+
+      &:first-child {
+        border-bottom-left-radius: variables.$border-radius;
+        border-top-left-radius: variables.$border-radius;
+        max-width: initial;
+        min-width: 82px;
+      }
+
+      &:last-child {
+        border-bottom-right-radius: variables.$border-radius;
+        border-top-right-radius: variables.$border-radius;
+        max-width: initial;
+        min-width: 115px;
+      }
+    }
+  }
+}
+
+mat-button-toggle-group[group='projectOperatingSystemGroup'] {
+  justify-content: center;
+  margin-top: 10px;
+
+  .mat-button-toggle {
+    i:not(.km-os-image-rhel) {
+      filter: grayscale(100%);
+    }
+
+    &.mat-button-toggle-checked {
+      i {
+        filter: none;
+      }
+    }
+  }
+}
+
+.km-pagination-page-size-select-container {
+  .mat-mdc-form-field {
+    .mat-mdc-form-field-bottom-align::before {
+      display: none;
+    }
+  }
+}
+
+.km-paginator-container {
+  padding-top: 10px;
+}
+
+.km-info-container {
+  border-radius: 4px;
+  border-style: solid;
+  border-width: 1px;
+  margin: 10px 0;
+  padding: 5px 10px;
+
+  .info-title {
+    font-size: variables.$font-size-subhead;
+    font-weight: normal;
+    margin: 0 0 10px;
+  }
+
+  .info-description {
+    font-size: variables.$font-size-body;
+    margin: 0;
+  }
+}

@@ -1,0 +1,49 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<form [formGroup]="form">
+  <km-dialog-title>{{mode}} Machine Deployment</km-dialog-title>
+  <mat-dialog-content class="km-add-node-outer">
+    @if (mode === 'Edit') {
+    <p class="km-dialog-context-description">Edit <b>{{machineDeploymentName}}</b> machine deployment of
+      <b>{{clusterName}}</b> cluster
+    </p>
+    }
+    <km-node-data [provider]="provider"
+                  [formControl]="form.get(Control.NodeData)" />
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <div fxFlex
+         fxLayout="column"
+         fxLayoutAlign="start"
+         fxLayoutGap="10px">
+      @if (isRecreationWarningVisible) {
+      <div fxFlex
+           fxLayoutAlign="start center">
+        <i class="km-icon-warning"></i>
+        <div>Changed node settings, Nodes will be recreated.</div>
+      </div>
+      }
+    </div>
+    <button mat-flat-button
+            (click)="onConfirm()"
+            [disabled]="form.invalid || isQuotaExceeded || (quotaCalculationInProgress$ | async)">
+      <i [ngClass]="(quotaCalculationInProgress$ | async) ? 'km-icon-mask km-icon-pending i-24' : getIconClass()"
+         matButtonIcon></i>
+      <span>{{getConfirmButtonText()}}</span>
+    </button>
+  </mat-dialog-actions>
+</form>

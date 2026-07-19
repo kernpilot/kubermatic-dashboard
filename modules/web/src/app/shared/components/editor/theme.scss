@@ -1,0 +1,64 @@
+// Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'sass:map';
+@use 'variables';
+@use 'km-var' as *;
+
+@mixin theme-editor-component($colors) {
+  .editor {
+    .header {
+      color: km-var($colors, text-secondary);
+
+      &.card {
+        background-color: km-var($colors, background-card);
+      }
+
+      &.dialog {
+        background-color: km-var($colors, background-dialog);
+      }
+
+      &.focused {
+        color: km-var($colors, primary-dark);
+      }
+    }
+
+    .monaco-editor {
+      box-shadow: 0 0 0 1px km-var($colors, divider);
+
+      .margin {
+        background-color: km-var($colors, divider);
+
+        .line-numbers {
+          color: km-var($colors, text);
+        }
+      }
+
+      &.focused {
+        box-shadow: 0 0 0 2px km-var($colors, primary-hover);
+      }
+    }
+
+    &:hover {
+      .header {
+        color: km-var($colors, secondary-dark);
+      }
+
+      .monaco-editor {
+        box-shadow: 0 0 0 2px km-var($colors, secondary-hover);
+        transition: variables.$transition-all;
+      }
+    }
+  }
+}

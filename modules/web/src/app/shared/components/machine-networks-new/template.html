@@ -1,0 +1,95 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<form [formGroup]="form"
+      fxLayout="row wrap">
+  @for (network of networkControls; track network; let i = $index) {
+  <div fxFlex="49%"
+       class="km-machine-network"
+       [formArrayName]="controls.MachineNetworks">
+    <div [formGroupName]="i">
+      <span class="km-single-machine-network">
+        #{{i + 1}}
+        <i class="km-icon-close"
+           aria-hidden="true"
+           (click)="delete(i)"></i>
+      </span>
+      <mat-form-field>
+        <mat-label>CIDR Range</mat-label>
+        <input matInput
+               [formControlName]="controls.CIDR"
+               autocomplete="off"
+               required>
+        <mat-hint>Example: 196.44.198.32/29</mat-hint>
+        @if (network.get(controls.CIDR).hasError('required')) {
+        <mat-error>
+          <strong>Required</strong>
+        </mat-error>
+        }
+        @if (network.get(controls.CIDR).hasError('pattern')) {
+        <mat-error>
+          Pattern is not valid.
+        </mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>DNS Servers</mat-label>
+        <input matInput
+               [formControlName]="controls.DNSServers"
+               autocomplete="off"
+               required>
+        <mat-hint>DNS Servers separated with commas, example: 8.8.8.8, 8.8.8.4</mat-hint>
+        @if (network.get(controls.DNSServers).hasError('required')) {
+        <mat-error>
+          <strong>Required</strong>
+        </mat-error>
+        }
+        @if (network.get(controls.DNSServers).hasError('pattern')) {
+        <mat-error>
+          Pattern is not valid.
+        </mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Gateway</mat-label>
+        <input matInput
+               [formControlName]="controls.Gateway"
+               autocomplete="off"
+               required>
+        <mat-hint>Example: 10.0.0.1</mat-hint>
+        @if (network.get(controls.Gateway).hasError('required')) {
+        <mat-error>
+          <strong>Required</strong>
+        </mat-error>
+        }
+        @if (network.get(controls.Gateway).hasError('pattern')) {
+        <mat-error>
+          Pattern is not valid.
+        </mat-error>
+        }
+      </mat-form-field>
+    </div>
+  </div>
+  }
+
+  <div class="km-border-dashed km-add-machine-network"
+       [ngClass]="isInWizardMode() ? 'wizard' : 'dialog'"
+       fxFlex="49%"
+       fxLayoutAlign="center center"
+       (click)="add()"
+       matTooltip="Add a new address range to pick worker addresses from">
+    + Machine Network
+  </div>
+</form>

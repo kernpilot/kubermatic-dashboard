@@ -1,0 +1,136 @@
+<!--
+Copyright 2024 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<mat-card appearance="outlined"
+          class="card">
+  <mat-card-header>
+    <mat-card-title fxFlex
+                    fxLayout="column"
+                    fxLayoutAlign="start"
+                    fxLayoutGap="32px">
+      <div fxFlex>Applications</div>
+      <div class="km-selector-warning"
+           fxLayout="row"
+           fxLayoutAlign="start center">
+        <i class="km-icon-warning km-warning km-pointer"></i>
+        <p fxFlex="95">
+          To apply default or enforced applications to specific datacenters, it's recommended to first select the datacenters
+          and then enable/disable enforced/default checkbox. Otherwise, the applications will be defaulted/enforced
+          unconditionally on all clusters.
+        </p>
+      </div>
+      <div fxLayoutAlign="space-between">
+        <km-search-field class="search"
+                         (queryChange)="onSearch($event)" />
+      </div>
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <table class="km-table"
+           mat-table
+           matSort
+           [dataSource]="dataSource">
+      <ng-container matColumnDef="name">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-15"
+            mat-sort-header>Name</th>
+        <td mat-cell
+            *matCellDef="let element">{{element.name}}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="default">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-15">
+          Default
+          <div class="km-icon-info km-pointer tooltip"
+               matTooltip="Default applications are automatically installed to new clusters. Users can disable, update the applications afterwards and during cluster creation."></div>
+        </th>
+        <td mat-cell
+            *matCellDef="let element">
+          <mat-slide-toggle [checked]="isDefaultApplication(element)"
+                            [disabled]="isEnforcedApplication(element)"
+                            (change)="onDefaultChange($event, element)" />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="enforce">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-15">
+          Enforce
+          <div class="km-icon-info km-pointer tooltip"
+               matTooltip="Enforced applications are installed to all the clusters. Users cannot disable or modify them."></div>
+        </th>
+        <td mat-cell
+            *matCellDef="let element">
+          <mat-slide-toggle [checked]="isEnforcedApplication(element)"
+                            (change)="onEnforceChange($event, element)" />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="datacenters">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-15">
+          Datacenters
+          <div class="km-icon-info km-pointer tooltip"
+               matTooltip="Specify datacenters where applications should be defaulted or enforced. This is only applicable if the application is defaulted or enforced."></div>
+        </th>
+        <td mat-cell
+            *matCellDef="let element"
+            class="datacenters-dropdown">
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-select [placeholder]="'Select Datacenters'"
+                        multiple
+                        [value]="targetDatacenters(element)"
+                        (selectionChange)="onDatacentersChange($event.value, element)"
+                        disableOptionCentering>
+              @for (dc of datacenters; track dc) {
+              <mat-option [value]="dc.metadata.name"> {{dc.metadata.name}} </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row
+          class="km-header-row"
+          *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          class="km-mat-row"></tr>
+    </table>
+
+    @if (isLoading) {
+    <div class="km-row">
+      <mat-spinner color="accent"
+                   class="km-spinner"
+                   [diameter]="25" />
+    </div>
+    }
+
+    <div [hidden]="!isPaginatorVisible()"
+         class="km-paginator-container">
+      <div fxLayout="row"
+           fxLayoutAlign="flex-end center">
+        <km-pagination-page-size />
+        <mat-paginator showFirstLastButtons />
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>

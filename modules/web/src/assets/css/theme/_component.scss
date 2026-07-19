@@ -1,0 +1,103 @@
+// Copyright 2021 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@import '../../../app/cluster/details/cluster/cni-version/theme';
+@import '../../../app/cluster/details/cluster/constraints/theme';
+@import '../../../app/cluster/details/shared/cluster-panel/theme';
+@import '../../../app/cluster/details/shared/version-picker/theme';
+@import '../../../app/core/components/footer/theme';
+@import '../../../app/core/components/navigation/project/theme';
+@import '../../../app/core/components/navigation/theme';
+@import '../../../app/core/components/notification/theme';
+@import '../../../app/core/components/notification-panel/theme';
+@import '../../../app/core/components/sidenav/theme';
+@import '../../../app/pages/api-docs/theme';
+@import '../../../app/project/theme';
+@import '../../../app/shared/components/addon-list/install-addon-dialog/theme';
+@import '../../../app/shared/components/addon-list/theme';
+@import '../../../app/shared/components/application-list/theme';
+@import '../../../app/shared/components/application-list/application-definition-card/theme';
+@import '../../../app/shared/components/editor/theme';
+@import '../../../app/shared/components/property-usage/theme';
+@import '../../../app/shared/components/number-stepper/theme';
+@import '../../../app/shared/components/eol/theme';
+@import '../../../app/shared/components/cluster-summary/theme';
+@import '../../../app/shared/components/chip/theme';
+@import '../../../app/shared/components/tab-card/theme';
+@import '../../../app/shared/components/openstack-credentials/theme';
+@import '../../../app/shared/components/terminal/terminal-toolbar/theme';
+@import '../../../app/shared/components/terminal/terminal-status-bar/theme';
+@import '../../../app/shared/components/announcement-banner/theme';
+@import '../../../app/shared/components/announcements-dialog/theme';
+@import '../../../app/cluster/details/cluster/overlay-terminal/theme';
+@import '../../../app/cluster/details/cluster/rbac/add-binding-dialog/theme';
+@import '../../../app/settings/admin/bucket-settings/destinations/theme';
+@import '../../../app/settings/admin/presets/theme';
+@import '../../../app/settings/admin/presets/edit-dialog/theme';
+@import '../../../app/settings/admin/nav/theme';
+@import '../../../app/shared/components/side-nav-field/theme';
+@import '../../../app/dynamic/enterprise/quotas/quota-widget/theme';
+@import '../../../app/shared/components/taint-form/theme';
+@import '../../../app/shared/components/label-form/theme';
+@import '../../../app/shared/components/annotation-form/theme';
+@import '../../../app/node-data/basic/provider/kubevirt/topology-spread-constraint-form/theme';
+@import '../../../app/node-data/basic/provider/nutanix/theme';
+@import '../../../app/dynamic/enterprise/cluster-backups/list/backups/import-dialog/theme';
+@import '../../../app/dynamic/enterprise/kyverno-policies/policy-template/theme';
+
+@mixin theme-components($colors) {
+  @include theme-addon-list-component($colors);
+  @include theme-api-docs-component($colors);
+  @include theme-cluster-panel-component($colors);
+  @include theme-editor-component($colors);
+  @include theme-footer-component($colors);
+  @include theme-navigation-component($colors);
+  @include theme-notification-component($colors);
+  @include theme-notification-panel-component($colors);
+  @include theme-project-component($colors);
+  @include theme-project-selector-component($colors);
+  @include theme-property-usage-component($colors);
+  @include theme-quota-widget-component($colors);
+  @include theme-install-addon-dialog-component($colors);
+  @include theme-applications-list-component($colors);
+  @include theme-application-definition-card-component($colors);
+  @include theme-sidenav-component($colors);
+  @include theme-sidenav-field-component($colors);
+  @include theme-version-picker-component($colors);
+  @include theme-cluster-summary-component($colors);
+  @include theme-eol-component($colors);
+  @include theme-chip-component($colors);
+  @include theme-add-binding-component($colors);
+  @include theme-tab-card-component($colors);
+  @include theme-preset-list-component($colors);
+  @include theme-preset-edit-dialog-component($colors);
+  @include theme-admin-sidenav-component($colors);
+  @include theme-wizard-openstack-provider-basic($colors);
+  @include theme-constraints-component($colors);
+  @include theme-number-stepper-component($colors);
+  @include theme-admin-backup-destinations-component($colors);
+  @include theme-cni-version-component($colors);
+  @include theme-terminal-toolbar-component($colors);
+  @include theme-terminal-status-bar-component($colors);
+  @include theme-terminal-overlay-component($colors);
+  @include theme-taint-form-component($colors);
+  @include theme-label-form-component($colors);
+  @include theme-annotation-form-component($colors);
+  @include theme-topology-spread-constraint-form-component($colors);
+  @include theme-nutanix-basic-node-data-component($colors);
+  @include theme-announcement-banner-component($colors);
+  @include theme-announcements-dialog-component($colors);
+  @include theme-import-backup-component($colors);
+  @include theme-kyverno-policiy-template-list-component($colors);
+}

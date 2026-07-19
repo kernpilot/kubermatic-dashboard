@@ -1,0 +1,62 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<form [formGroup]="form"
+      fxLayout="column"
+      fxLayoutGap="16px">
+  <km-number-stepper [formControlName]="Controls.CPUs"
+                     mode="errors"
+                     label="Number of CPUs"
+                     min="1"
+                     required />
+
+  <km-number-stepper [formControlName]="Controls.Memory"
+                     mode="errors"
+                     label="Memory in MB"
+                     min="512"
+                     required />
+
+  <mat-form-field fxFlex>
+    <mat-label>VM Template</mat-label>
+    <input matInput
+           [formControlName]="Controls.Template"
+           type="text"
+           autocomplete="off"
+           required
+           kmValueChangedIndicator />
+    @if (form.get(Controls.Template).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+
+  <km-number-stepper [formControlName]="Controls.DiskSizeGB"
+                     mode="errors"
+                     label="Disk Size in GB"
+                     min="1"
+                     required />
+
+  <km-combobox #vmGroupsCombobox
+               [selected]="selectedVMGroup"
+               [options]="vmGroups"
+               [formControlName]="Controls.VMGroup"
+               (changed)="onVMGroupChange($event)"
+               [label]="vmGroupStateLabel"
+               inputLabel="Select VM Group..."
+               filterBy="name">
+    <div *option="let group">{{group.name}}</div>
+  </km-combobox>
+</form>

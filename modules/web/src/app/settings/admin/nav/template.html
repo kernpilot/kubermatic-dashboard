@@ -1,0 +1,311 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div class="km-sidenav sidenav"
+     fxLayout="column"
+     [ngClass]="{'collapse-sidenav': isSidenavCollapsed}">
+
+  <km-side-nav-field [label]="adminPanelSections.Interface"
+                     icon="km-icon-defaults"
+                     [isSidenavCollapsed]="isSidenavCollapsed">
+    @if (!isSidenavCollapsed) {
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-defaults"
+         fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.Defaults)">
+        <span>{{adminPanelViewDisplayName.Defaults}}</span>
+      </a>
+    </div>
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.Limits)">
+        <span>{{adminPanelViewDisplayName.Limits}}</span>
+      </a>
+    </div>
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.Customization)">
+        <span>{{adminPanelViewDisplayName.Customization}}</span>
+      </a>
+    </div>
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.Announcements)">
+        <span>{{adminPanelViewDisplayName.Announcements}}</span>
+      </a>
+    </div>
+    }
+
+    @if (isSidenavCollapsed) {
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.Defaults)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.Defaults}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.Limits)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.Limits}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.Customization)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.Customization}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.Announcements)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.Announcements}}</span>
+    </a>
+    }
+  </km-side-nav-field>
+
+  <km-side-nav-field [label]="adminPanelSections.ManageResources"
+                     icon="km-icon-node"
+                     [isSidenavCollapsed]="isSidenavCollapsed">
+    @if (!isSidenavCollapsed) {
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-SeedConfiguration"
+         fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.SeedConfiguration)">
+        <span>{{adminPanelViewDisplayName.SeedConfiguration}}</span>
+      </a>
+    </div>
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-dc"
+         fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.Datacenters)">
+        <span>{{adminPanelViewDisplayName.Datacenters}}</span>
+      </a>
+    </div>
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-presets"
+         [routerLink]="getRouterLink(adminPanelView.ProviderPresets)"
+         fxLayoutAlign=" center">
+        <span>{{adminPanelViewDisplayName.ProviderPresets}}</span>
+      </a>
+    </div>
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-applications"
+         [routerLink]="getRouterLink(adminPanelView.Applications)"
+         fxLayoutAlign=" center">
+        <span>{{adminPanelViewDisplayName.Applications}}</span>
+      </a>
+    </div>
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-backupdestinations"
+         [routerLink]="getRouterLink(adminPanelView.BackupDestinations)"
+         fxLayoutAlign=" center">
+        <span>{{adminPanelViewDisplayName.BackupDestinations}}</span>
+      </a>
+    </div>
+    @if (isEnterpriseEdition) {
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-quotas"
+         [routerLink]="getRouterLink(adminPanelView.ProjectQuotas)"
+         fxLayoutAlign=" center">
+        <span>{{adminPanelViewDisplayName.ProjectQuotas}}</span>
+      </a>
+    </div>
+    }
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-opa"
+         [routerLink]="getRouterLink(adminPanelView.OPA)"
+         fxLayoutAlign=" center">
+        <span>{{adminPanelViewDisplayName.OPA}}</span>
+      </a>
+    </div>
+    @if (isEnterpriseEdition) {
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a [routerLink]="getRouterLink(adminPanelView.KyvernoPolicies)"
+         fxLayoutAlign=" center">
+        <span>{{adminPanelViewDisplayName.KyvernoPolicies}}</span>
+      </a>
+    </div>
+    }
+    }
+
+    @if (isSidenavCollapsed) {
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.SeedConfiguration)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.SeedConfiguration}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.Datacenters)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.Datacenters}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.ProviderPresets)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.ProviderPresets}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.Applications)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.Applications}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.BackupDestinations)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.BackupDestinations}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.ProjectQuotas)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.ProjectQuotas}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.OPA)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.OPA}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.KyvernoPolicies)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.KyvernoPolicies}}</span>
+    </a>
+    }
+  </km-side-nav-field>
+
+  <km-side-nav-field [label]="adminPanelSections.Monitoring"
+                     icon="km-icon-metering"
+                     [isSidenavCollapsed]="isSidenavCollapsed">
+    @if (!isSidenavCollapsed) {
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-rulegroups"
+         fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.RuleGroups)">
+        <span>{{adminPanelViewDisplayName.RuleGroups}}</span>
+      </a>
+    </div>
+    @if (isEnterpriseEdition) {
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-metering"
+         fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.Metering)">
+        <span>{{adminPanelViewDisplayName.Metering}}</span>
+      </a>
+    </div>
+    }
+    }
+
+    @if (isSidenavCollapsed) {
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.RuleGroups)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.RuleGroups}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.Metering)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.Metering}}</span>
+    </a>
+    }
+  </km-side-nav-field>
+
+  <km-side-nav-field [label]="adminPanelSections.Users"
+                     icon="km-icon-member"
+                     [isSidenavCollapsed]="isSidenavCollapsed"
+                     [lastItem]="true">
+    @if (!isSidenavCollapsed) {
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-users"
+         fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.Accounts)">
+        <span>{{adminPanelViewDisplayName.Accounts}}</span>
+      </a>
+    </div>
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-administrators"
+         fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.Administrators)">
+        <span>{{adminPanelViewDisplayName.Administrators}}</span>
+      </a>
+    </div>
+    <div class="sub-menu-item"
+         routerLinkActive="active">
+      <a id="km-nav-item-global-viewers"
+         fxLayoutAlign=" center"
+         [routerLink]="getRouterLink(adminPanelView.GlobalViewers)">
+        <span>{{adminPanelViewDisplayName.GlobalViewers}}</span>
+      </a>
+    </div>
+    }
+    @if (isSidenavCollapsed) {
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.Accounts)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.Accounts}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.Administrators)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.Administrators}}</span>
+    </a>
+    <a fxLayoutAlign=" center"
+       routerLinkActive="active"
+       [routerLink]="getRouterLink(adminPanelView.GlobalViewers)"
+       class="collapsed-sub-menu-item">
+      <span>{{adminPanelViewDisplayName.GlobalViewers}}</span>
+    </a>
+    }
+  </km-side-nav-field>
+  <div fxFlex></div>
+  <div class="go-back km-pointer"
+       [ngClass]="{'go-back-collapsed': isSidenavCollapsed}">
+    <a fxLayoutAlign="center center"
+       (click)="goBack()">
+      <i class="km-icon-mask km-icon-back"></i>
+      @if (!isSidenavCollapsed) {
+      <span>go back</span>
+      }
+    </a>
+  </div>
+</div>

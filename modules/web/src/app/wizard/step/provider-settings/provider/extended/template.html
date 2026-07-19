@@ -1,0 +1,52 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+@if (visible) {
+<div [formGroup]="form"
+     fxLayout="column"
+     fxLayoutGap="8px">
+  <mat-card-header class="km-no-padding">
+    <mat-card-title>Advanced Settings</mat-card-title>
+  </mat-card-header>
+  <div>
+    @switch (provider) {
+    @case (Providers.AWS) {
+    <km-wizard-aws-provider-extended [formControl]="form.get(Controls.ProviderExtended)" />
+    }
+    @case (Providers.VSPHERE) {
+    <km-wizard-vsphere-provider-extended [formControl]="form.get(Controls.ProviderExtended)" />
+    }
+    @case (Providers.AZURE) {
+    <km-wizard-azure-provider-extended [formControl]="form.get(Controls.ProviderExtended)" />
+    }
+    @case (Providers.GCP) {
+    <km-wizard-gcp-provider-extended [formControl]="form.get(Controls.ProviderExtended)" />
+    }
+    @case (Providers.OPENSTACK) {
+    <km-wizard-openstack-provider-extended [formControl]="form.get(Controls.ProviderExtended)" />
+    }
+    @case (Providers.HETZNER) {
+    <km-wizard-hetzner-provider-extended [formControl]="form.get(Controls.ProviderExtended)" />
+    }
+    @case (Providers.NUTANIX) {
+    <km-wizard-nutanix-provider-extended [formControl]="form.get(Controls.ProviderExtended)" />
+    }
+    @case (Providers.VMWARECLOUDDIRECTOR) {
+    <km-wizard-vmware-cloud-director-provider-extended [formControl]="form.get(Controls.ProviderExtended)" />
+    }
+    }
+  </div>
+</div>
+}

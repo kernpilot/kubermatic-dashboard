@@ -1,0 +1,1016 @@
+/*
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package common
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	semverlib "github.com/Masterminds/semver/v3"
+	jsonpatch "github.com/evanphx/json-patch"
+
+	apiv1 "k8c.io/dashboard/v2/pkg/api/v1"
+	"k8c.io/dashboard/v2/pkg/handler/middleware"
+	"k8c.io/dashboard/v2/pkg/handler/v1/common"
+	"k8c.io/dashboard/v2/pkg/handler/v1/label"
+	machineconversions "k8c.io/dashboard/v2/pkg/machine"
+	"k8c.io/dashboard/v2/pkg/provider"
+	"k8c.io/dashboard/v2/pkg/resources/machine"
+	kubermaticv1 "k8c.io/kubermatic/sdk/v2/apis/kubermatic/v1"
+	kubermaticlog "k8c.io/kubermatic/v2/pkg/log"
+	utilerrors "k8c.io/kubermatic/v2/pkg/util/errors"
+	"k8c.io/kubermatic/v2/pkg/validation/nodeupdate"
+	clusterv1alpha1 "k8c.io/machine-controller/sdk/apis/cluster/v1alpha1"
+	"k8c.io/machine-controller/sdk/bootstrap"
+
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
+	"k8s.io/utils/ptr"
+	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	errGlue = " & "
+
+	initialConditionParsingDelay = 5
+
+	MachineDeploymentEventWarningType = "warning"
+	MachineDeploymentEventNormalType  = "normal"
+)
+
+func CreateMachineDeployment(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, sshKeyProvider provider.SSHKeyProvider, seedsGetter provider.SeedsGetter, machineDeployment apiv1.NodeDeployment, projectID, clusterID string, settingsProvider provider.SettingsProvider) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+
+	project, err := common.GetProject(ctx, userInfoGetter, projectProvider, privilegedProjectProvider, projectID, nil)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, &provider.ClusterGetOptions{CheckInitStatus: true})
+	if err != nil {
+		return nil, err
+	}
+
+	isBYO, err := common.IsBringYourOwnProvider(cluster.Spec.Cloud)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+	if isBYO {
+		return nil, utilerrors.NewBadRequest("You cannot create a node deployment for KubeAdm provider")
+	}
+
+	keys, err := sshKeyProvider.List(ctx, project, &provider.SSHKeyListOptions{ClusterName: clusterID})
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, project.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	userInfo, err := userInfoGetter(ctx, "")
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+	_, dc, err := provider.DatacenterFromSeedMap(userInfo, seedsGetter, cluster.Spec.Cloud.DatacenterName)
+	if err != nil {
+		return nil, fmt.Errorf("error getting dc: %w", err)
+	}
+
+	nd, err := machine.Validate(&machineDeployment, cluster.Spec.Version.Semver())
+	if err != nil {
+		return nil, utilerrors.NewBadRequest("node deployment validation failed: %s", err)
+	}
+
+	md, err := machine.Deployment(ctx, cluster, nd, dc, keys, settingsProvider)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create machine deployment from template: %w", err)
+	}
+
+	if err := client.Create(ctx, md); err != nil {
+		return nil, fmt.Errorf("failed to create machine deployment: %w", err)
+	}
+
+	return OutputMachineDeployment(md)
+}
+
+func OutputMachineDeployment(md *clusterv1alpha1.MachineDeployment) (*apiv1.NodeDeployment, error) {
+	nodeStatus := apiv1.NodeStatus{}
+	nodeStatus.MachineName = md.Name
+
+	var deletionTimestamp *apiv1.Time
+	if md.DeletionTimestamp != nil {
+		dt := apiv1.NewTime(md.DeletionTimestamp.Time)
+		deletionTimestamp = &dt
+	}
+
+	operatingSystemSpec, err := machineconversions.GetAPIV1OperatingSystemSpec(md.Spec.Template.Spec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get operating system spec from machine deployment: %w", err)
+	}
+
+	cloudSpec, err := machineconversions.GetAPIV2NodeCloudSpec(md.Spec.Template.Spec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node cloud spec from machine deployment: %w", err)
+	}
+
+	networkSpec, err := machineconversions.GetAPIV2NodeNetworkSpec(md.Spec.Template.Spec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node network spec from machine deployment: %w", err)
+	}
+
+	taints := make([]apiv1.TaintSpec, len(md.Spec.Template.Spec.Taints))
+	for i, taint := range md.Spec.Template.Spec.Taints {
+		taints[i] = apiv1.TaintSpec{
+			Effect: string(taint.Effect),
+			Key:    taint.Key,
+			Value:  taint.Value,
+		}
+	}
+
+	minReplicaCount, maxReplicaCount, err := getAutoscalingConfiguration(md)
+	if err != nil {
+		return nil, err
+	}
+
+	hasDynamicConfig := md.Spec.Template.Spec.ConfigSource != nil
+
+	// Filter out selector labels from template labels before returning to UI
+	filteredLabels := make(map[string]string)
+	for k, v := range md.Spec.Template.Labels {
+		if _, isSelector := md.Spec.Selector.MatchLabels[k]; !isSelector {
+			filteredLabels[k] = v
+		}
+	}
+
+	return &apiv1.NodeDeployment{
+		ObjectMeta: apiv1.ObjectMeta{
+			ID:                md.Name,
+			Name:              md.Name,
+			Annotations:       md.Annotations,
+			Labels:            filteredLabels,
+			DeletionTimestamp: deletionTimestamp,
+			CreationTimestamp: apiv1.NewTime(md.CreationTimestamp.Time),
+		},
+		Spec: apiv1.NodeDeploymentSpec{
+			Replicas: *md.Spec.Replicas,
+			Template: apiv1.NodeSpec{
+				Labels:      label.FilterLabels(label.NodeDeploymentResourceType, md.Spec.Template.Spec.Labels),
+				Annotations: md.Spec.Template.Spec.Annotations,
+				Taints:      taints,
+				Versions: apiv1.NodeVersionInfo{
+					Kubelet: md.Spec.Template.Spec.Versions.Kubelet,
+				},
+				OperatingSystem: *operatingSystemSpec,
+				Cloud:           *cloudSpec,
+				Network:         networkSpec,
+			},
+			Paused:        &md.Spec.Paused,
+			DynamicConfig: &hasDynamicConfig,
+			MinReplicas:   minReplicaCount,
+			MaxReplicas:   maxReplicaCount,
+		},
+		Status: md.Status,
+	}, nil
+}
+
+func DeleteMachineNode(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, projectID, clusterID, machineID string) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	machine, node, err := findMachineAndNode(ctx, machineID, client)
+	if err != nil {
+		return nil, err
+	}
+	if machine == nil && node == nil {
+		return nil, utilerrors.NewNotFound("Node", machineID)
+	}
+
+	if machine != nil {
+		return nil, common.KubernetesErrorToHTTPError(client.Delete(ctx, machine))
+	} else if node != nil {
+		return nil, common.KubernetesErrorToHTTPError(client.Delete(ctx, node))
+	}
+	return nil, nil
+}
+
+func ListMachineDeployments(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, projectID, clusterID string) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	machineDeployments := &clusterv1alpha1.MachineDeploymentList{}
+	if err := client.List(ctx, machineDeployments, ctrlruntimeclient.InNamespace(metav1.NamespaceSystem)); err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	nodeDeployments := make([]*apiv1.NodeDeployment, 0, len(machineDeployments.Items))
+	for i := range machineDeployments.Items {
+		nd, err := OutputMachineDeployment(&machineDeployments.Items[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to output machine deployment %s: %w", machineDeployments.Items[i].Name, err)
+		}
+
+		nodeDeployments = append(nodeDeployments, nd)
+	}
+
+	return nodeDeployments, nil
+}
+
+func GetMachineDeployment(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, projectID, clusterID, machineDeploymentID string) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	machineDeployment := &clusterv1alpha1.MachineDeployment{}
+	if err := client.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: machineDeploymentID}, machineDeployment); err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	return OutputMachineDeployment(machineDeployment)
+}
+
+func GetMachineDeploymentJoiningScript(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, projectID, clusterID, machineDeploymentID string) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	machineDeployment := &clusterv1alpha1.MachineDeployment{}
+	if err := client.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: machineDeploymentID}, machineDeployment); err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	scriptSecretName := fmt.Sprintf("edge-provider-script-%s-%s", machineDeployment.Name, machineDeployment.Namespace)
+	joiningScriptSecret := &corev1.Secret{}
+	if err := client.Get(ctx, types.NamespacedName{Name: scriptSecretName, Namespace: bootstrap.CloudInitSettingsNamespace}, joiningScriptSecret); err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	joiningScript := joiningScriptSecret.Data["fetch-bootstrap-script"]
+	if len(joiningScript) == 0 {
+		return nil, errors.New("machine joining script is not found")
+	}
+
+	return base64.StdEncoding.EncodeToString(joiningScript), nil
+}
+
+func ListMachineDeploymentNodes(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, projectID, clusterID, machineDeploymentID string, hideInitialConditions bool) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	machines, err := getMachinesForNodeDeployment(ctx, clusterProvider, userInfoGetter, cluster, projectID, machineDeploymentID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	nodeList, err := getNodeList(ctx, cluster, clusterProvider)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	var nodesV1 []*apiv1.Node
+	for i := range machines.Items {
+		node := getNodeForMachine(&machines.Items[i], nodeList.Items)
+		outNode, err := outputMachine(&machines.Items[i], node, hideInitialConditions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to output machine %s: %w", machines.Items[i].Name, err)
+		}
+
+		nodesV1 = append(nodesV1, outNode)
+	}
+
+	return nodesV1, nil
+}
+
+func ListNodesForCluster(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, projectID, clusterID string, hideInitialConditions bool) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	machineList := &clusterv1alpha1.MachineList{}
+	if err := client.List(ctx, machineList, ctrlruntimeclient.InNamespace(metav1.NamespaceSystem)); err != nil {
+		return nil, fmt.Errorf("failed to load machines from cluster: %w", err)
+	}
+
+	nodeList, err := getNodeList(ctx, cluster, clusterProvider)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	// The following is a bit tricky. We might have a node which is not created by a machine and vice versa...
+	var nodesV1 []*apiv1.Node
+	matchedMachineNodes := sets.New[string]()
+
+	// Go over all machines first
+	for i := range machineList.Items {
+		node := getNodeForMachine(&machineList.Items[i], nodeList.Items)
+		if node == nil {
+			continue
+		}
+
+		matchedMachineNodes.Insert(string(node.UID))
+		outNode, err := outputMachine(&machineList.Items[i], node, hideInitialConditions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to output machine %s: %w", machineList.Items[i].Name, err)
+		}
+		nodesV1 = append(nodesV1, outNode)
+	}
+
+	// Now all nodes, which do not belong to a machine - Relevant for BYO
+	for i := range nodeList.Items {
+		if !matchedMachineNodes.Has(string(nodeList.Items[i].UID)) {
+			nodesV1 = append(nodesV1, outputNode(&nodeList.Items[i], hideInitialConditions))
+		}
+	}
+	return nodesV1, nil
+}
+
+func outputNode(node *corev1.Node, hideInitialNodeConditions bool) *apiv1.Node {
+	nodeStatus := apiv1.NodeStatus{}
+	nodeStatus = apiNodeStatus(nodeStatus, node, hideInitialNodeConditions)
+	var deletionTimestamp *apiv1.Time
+	if node.DeletionTimestamp != nil {
+		t := apiv1.NewTime(node.DeletionTimestamp.Time)
+		deletionTimestamp = &t
+	}
+
+	return &apiv1.Node{
+		ObjectMeta: apiv1.ObjectMeta{
+			ID:                node.Name,
+			Name:              node.Name,
+			DeletionTimestamp: deletionTimestamp,
+			CreationTimestamp: apiv1.NewTime(node.CreationTimestamp.Time),
+		},
+		Spec: apiv1.NodeSpec{
+			Versions:        apiv1.NodeVersionInfo{},
+			OperatingSystem: apiv1.OperatingSystemSpec{},
+			Cloud:           apiv1.NodeCloudSpec{},
+		},
+		Status: nodeStatus,
+	}
+}
+
+func ListMachineDeploymentMetrics(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, projectID, clusterID, machineDeploymentID string) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// check if logged user has privileges to list node deployments. If yes then we can use privileged client to
+	// get metrics
+	machines, err := getMachinesForNodeDeployment(ctx, clusterProvider, userInfoGetter, cluster, projectID, machineDeploymentID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	nodeList, err := getNodeList(ctx, cluster, clusterProvider)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	availableResources := make(map[string]corev1.ResourceList)
+	for i := range machines.Items {
+		n := getNodeForMachine(&machines.Items[i], nodeList.Items)
+		if n != nil {
+			availableResources[n.Name] = n.Status.Allocatable
+		}
+	}
+
+	dynamicClient, err := clusterProvider.GetAdminClientForUserCluster(ctx, cluster)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	nodeDeploymentNodesMetrics := make([]v1beta1.NodeMetrics, 0)
+	allNodeMetricsList := &v1beta1.NodeMetricsList{}
+	if err := dynamicClient.List(ctx, allNodeMetricsList); err != nil {
+		// Happens during cluster creation when the CRD is not setup yet
+		if !meta.IsNoMatchError(err) {
+			if apierrors.IsServiceUnavailable(err) && cluster.Spec.CNIPlugin != nil && cluster.Spec.CNIPlugin.Type == kubermaticv1.CNIPluginTypeNone {
+				// Return empty metrics with 200 status code if the cluster is using BYO CNI and the metrics endpoint is unavailable.
+				// This is because cluster unavailability is expected as long as the user cluster admins didn't set up CNI themselves.
+				// Meanwhile we don't want to bother KKP admins with alerts about an error that is not actionable for them.
+				kubermaticlog.Logger.With("cluster", cluster.Name).With("error", err).Warn("returning empty node metrics for BYO CNI user cluster since it is unavailable")
+				return make([]apiv1.NodeMetric, 0), nil
+			}
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+	}
+
+	for _, m := range allNodeMetricsList.Items {
+		if _, ok := availableResources[m.Name]; ok {
+			nodeDeploymentNodesMetrics = append(nodeDeploymentNodesMetrics, m)
+		}
+	}
+
+	return ConvertNodeMetrics(nodeDeploymentNodesMetrics, availableResources)
+}
+
+func PatchMachineDeployment(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, sshKeyProvider provider.SSHKeyProvider, seedsGetter provider.SeedsGetter, projectID, clusterID, machineDeploymentID string, patch json.RawMessage, settingsProvider provider.SettingsProvider) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+	userInfo, err := userInfoGetter(ctx, "")
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	project, err := common.GetProject(ctx, userInfoGetter, projectProvider, privilegedProjectProvider, projectID, nil)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	// We cannot use machineClient.ClusterV1alpha1().MachineDeployments().Patch() method as we are not exposing
+	// MachineDeployment type directly. API uses NodeDeployment type and we cannot ensure compatibility here.
+	machineDeployment := &clusterv1alpha1.MachineDeployment{}
+	if err := client.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: machineDeploymentID}, machineDeployment); err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	nodeDeployment, err := OutputMachineDeployment(machineDeployment)
+	if err != nil {
+		return nil, fmt.Errorf("cannot output existing node deployment: %w", err)
+	}
+	var unmarshalPatched *apiv1.NodeDeployment
+	if err := json.Unmarshal(patch, &unmarshalPatched); err != nil {
+		return nil, utilerrors.NewBadRequest("cannot decode patched nodedeployment: %s", patch)
+	}
+
+	selectedOperatingSystems := selectedOperatingSystems(unmarshalPatched.Spec.Template.OperatingSystem)
+
+	if selectedOperatingSystems > 1 {
+		return nil, fmt.Errorf("cannot have more than one os")
+	}
+
+	if selectedOperatingSystems == 1 {
+		nodeDeployment.Spec.Template.OperatingSystem = unmarshalPatched.Spec.Template.OperatingSystem
+	}
+
+	nodeDeploymentJSON, err := json.Marshal(nodeDeployment)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode existing node deployment: %w", err)
+	}
+
+	patchedNodeDeploymentJSON, err := jsonpatch.MergePatch(nodeDeploymentJSON, patch)
+	if err != nil {
+		return nil, fmt.Errorf("cannot patch node deployment: %w", err)
+	}
+
+	var patchedNodeDeployment *apiv1.NodeDeployment
+	if err := json.Unmarshal(patchedNodeDeploymentJSON, &patchedNodeDeployment); err != nil {
+		return nil, fmt.Errorf("cannot decode patched cluster: %w", err)
+	}
+
+	// validate min/max replicas
+	maxReplicas := patchedNodeDeployment.Spec.MaxReplicas
+	if maxReplicas != nil && patchedNodeDeployment.Spec.Replicas > int32(*maxReplicas) {
+		return nil, utilerrors.NewBadRequest("replica count (%d) cannot be higher then autoscaler maxreplicas (%d)", patchedNodeDeployment.Spec.Replicas, *maxReplicas)
+	}
+	if patchedNodeDeployment.Spec.MinReplicas != nil && patchedNodeDeployment.Spec.Replicas < int32(*patchedNodeDeployment.Spec.MinReplicas) {
+		return nil, utilerrors.NewBadRequest("replica count (%d) cannot be lower then autoscaler minreplicas (%d)", patchedNodeDeployment.Spec.Replicas, *patchedNodeDeployment.Spec.MinReplicas)
+	}
+
+	kversion, err := semverlib.NewVersion(patchedNodeDeployment.Spec.Template.Versions.Kubelet)
+	if err != nil {
+		return nil, utilerrors.NewBadRequest("failed to parse kubelet version: %v", err)
+	}
+	if err = nodeupdate.EnsureVersionCompatible(cluster.Spec.Version.Semver(), kversion); err != nil {
+		return nil, utilerrors.NewBadRequest("%v", err)
+	}
+
+	_, dc, err := provider.DatacenterFromSeedMap(userInfo, seedsGetter, cluster.Spec.Cloud.DatacenterName)
+	if err != nil {
+		return nil, fmt.Errorf("error getting dc: %w", err)
+	}
+
+	keys, err := sshKeyProvider.List(ctx, project, &provider.SSHKeyListOptions{ClusterName: clusterID})
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	patchedMachineDeployment, err := machine.Deployment(ctx, cluster, patchedNodeDeployment, dc, keys, settingsProvider)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create machine deployment from template: %w", err)
+	}
+
+	// Only the fields from NodeDeploymentSpec will be updated by a patch.
+	// It ensures that the name and resource version are set and the selector stays the same.
+	machineDeployment.Annotations = patchedMachineDeployment.Annotations
+	machineDeployment.Spec.Template.Spec = patchedMachineDeployment.Spec.Template.Spec
+	machineDeployment.Spec.Replicas = patchedMachineDeployment.Spec.Replicas
+	machineDeployment.Spec.Paused = patchedMachineDeployment.Spec.Paused
+
+	if patchedMachineDeployment.Spec.Template.Labels != nil {
+		newLabels := make(map[string]string)
+		for k, v := range patchedMachineDeployment.Spec.Template.Labels {
+			// Filter out any selector labels from template labels.
+			if _, isSelector := machineDeployment.Spec.Selector.MatchLabels[k]; !isSelector {
+				newLabels[k] = v
+			}
+		}
+		// Ensure original selector match labels are preserved
+		for k, v := range machineDeployment.Spec.Selector.MatchLabels {
+			newLabels[k] = v
+		}
+		machineDeployment.Spec.Template.Labels = newLabels
+	}
+
+	if err := client.Update(ctx, machineDeployment); err != nil {
+		return nil, fmt.Errorf("failed to update machine deployment: %w", err)
+	}
+
+	return OutputMachineDeployment(machineDeployment)
+}
+
+func RestartMachineDeployment(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, projectID, clusterID, machineDeploymentID string) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	machineDeployment := &clusterv1alpha1.MachineDeployment{}
+	if err := client.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: machineDeploymentID}, machineDeployment); err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	if machineDeployment.Spec.Template.Annotations == nil {
+		machineDeployment.Spec.Template.Annotations = map[string]string{}
+	}
+	machineDeployment.Spec.Template.Annotations[kubermaticv1.ForceRestartAnnotation] = strconv.FormatInt(time.Now().UnixNano(), 10)
+
+	if err := client.Update(ctx, machineDeployment); err != nil {
+		return nil, fmt.Errorf("failed to update machine deployment: %w", err)
+	}
+
+	return OutputMachineDeployment(machineDeployment)
+}
+
+func ListMachineDeploymentNodesEvents(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, projectID, clusterID, machineDeploymentID, eventType string) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := clusterProvider.GetAdminClientForUserCluster(ctx, cluster)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	machines, err := getMachinesForNodeDeployment(ctx, clusterProvider, userInfoGetter, cluster, projectID, machineDeploymentID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	machineSets, err := getMachineSetsForNodeDeployment(ctx, clusterProvider, userInfoGetter, cluster, projectID, machineDeploymentID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	machineDeployment, err := getMachineDeploymentForNodeDeployment(ctx, clusterProvider, userInfoGetter, cluster, projectID, machineDeploymentID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	apiEventType := ""
+	events := make([]apiv1.Event, 0)
+
+	switch eventType {
+	case MachineDeploymentEventWarningType:
+		apiEventType = corev1.EventTypeWarning
+	case MachineDeploymentEventNormalType:
+		apiEventType = corev1.EventTypeNormal
+	}
+
+	for _, machine := range machines.Items {
+		kubermaticEvents, err := common.GetEvents(ctx, client, &machine, metav1.NamespaceSystem)
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+
+		events = append(events, kubermaticEvents...)
+	}
+
+	for _, machineSet := range machineSets.Items {
+		kubermaticEvents, err := common.GetEvents(ctx, client, &machineSet, metav1.NamespaceSystem)
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+
+		events = append(events, kubermaticEvents...)
+	}
+
+	kubermaticEvents, err := common.GetEvents(ctx, client, machineDeployment, metav1.NamespaceSystem)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	events = append(events, kubermaticEvents...)
+
+	if len(apiEventType) > 0 {
+		events = common.FilterEventsByType(events, apiEventType)
+	}
+
+	return events, nil
+}
+
+func DeleteMachineDeployment(ctx context.Context, userInfoGetter provider.UserInfoGetter, projectProvider provider.ProjectProvider, privilegedProjectProvider provider.PrivilegedProjectProvider, projectID, clusterID, machineDeploymentID string) (interface{}, error) {
+	clusterProvider := ctx.Value(middleware.ClusterProviderContextKey).(provider.ClusterProvider)
+	cluster, err := GetCluster(ctx, projectProvider, privilegedProjectProvider, userInfoGetter, projectID, clusterID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, common.KubernetesErrorToHTTPError(err)
+	}
+
+	return nil, common.KubernetesErrorToHTTPError(client.Delete(ctx, &clusterv1alpha1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceSystem, Name: machineDeploymentID}}))
+}
+
+func getMachineSetsForNodeDeployment(ctx context.Context, clusterProvider provider.ClusterProvider, userInfoGetter provider.UserInfoGetter, cluster *kubermaticv1.Cluster, projectID, nodeDeploymentID string) (*clusterv1alpha1.MachineSetList, error) {
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	machineDeployment := &clusterv1alpha1.MachineDeployment{}
+	if err := client.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: nodeDeploymentID}, machineDeployment); err != nil {
+		return nil, err
+	}
+
+	machineSets := &clusterv1alpha1.MachineSetList{}
+	listOpts := &ctrlruntimeclient.ListOptions{Namespace: metav1.NamespaceSystem, LabelSelector: labels.SelectorFromSet(machineDeployment.Spec.Selector.MatchLabels)}
+	if err := client.List(ctx, machineSets, listOpts); err != nil {
+		return nil, err
+	}
+	return machineSets, nil
+}
+
+func getMachineDeploymentForNodeDeployment(ctx context.Context, clusterProvider provider.ClusterProvider, userInfoGetter provider.UserInfoGetter, cluster *kubermaticv1.Cluster, projectID, nodeDeploymentID string) (*clusterv1alpha1.MachineDeployment, error) {
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	machineDeployment := &clusterv1alpha1.MachineDeployment{}
+	if err := client.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: nodeDeploymentID}, machineDeployment); err != nil {
+		return nil, err
+	}
+
+	return machineDeployment, nil
+}
+
+func outputMachine(machine *clusterv1alpha1.Machine, node *corev1.Node, hideInitialNodeConditions bool) (*apiv1.Node, error) {
+	displayName := machine.Spec.Name
+	nodeStatus := apiv1.NodeStatus{}
+	nodeStatus.MachineName = machine.Name
+	var deletionTimestamp *apiv1.Time
+	if machine.DeletionTimestamp != nil {
+		dt := apiv1.NewTime(machine.DeletionTimestamp.Time)
+		deletionTimestamp = &dt
+	}
+
+	if machine.Status.ErrorReason != nil {
+		nodeStatus.ErrorReason += string(*machine.Status.ErrorReason) + errGlue
+		nodeStatus.ErrorMessage += *machine.Status.ErrorMessage + errGlue
+	}
+
+	operatingSystemSpec, err := machineconversions.GetAPIV1OperatingSystemSpec(machine.Spec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get operating system spec from machine: %w", err)
+	}
+
+	cloudSpec, err := machineconversions.GetAPIV2NodeCloudSpec(machine.Spec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node cloud spec from machine: %w", err)
+	}
+
+	var labels map[string]string
+	if node != nil {
+		if node.Name != machine.Spec.Name {
+			displayName = node.Name
+		}
+		nodeStatus = apiNodeStatus(nodeStatus, node, hideInitialNodeConditions)
+
+		labels = gpuLabels(node.Labels)
+	}
+
+	nodeStatus.ErrorReason = strings.TrimSuffix(nodeStatus.ErrorReason, errGlue)
+	nodeStatus.ErrorMessage = strings.TrimSuffix(nodeStatus.ErrorMessage, errGlue)
+
+	sshUserName, err := machineconversions.GetSSHUserName(operatingSystemSpec, cloudSpec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ssh login name: %w", err)
+	}
+
+	return &apiv1.Node{
+		ObjectMeta: apiv1.ObjectMeta{
+			ID:                machine.Name,
+			Name:              displayName,
+			DeletionTimestamp: deletionTimestamp,
+			CreationTimestamp: apiv1.NewTime(machine.CreationTimestamp.Time),
+			Annotations:       machine.Annotations,
+		},
+		Spec: apiv1.NodeSpec{
+			Versions: apiv1.NodeVersionInfo{
+				Kubelet: machine.Spec.Versions.Kubelet,
+			},
+			Labels:          labels,
+			OperatingSystem: *operatingSystemSpec,
+			Cloud:           *cloudSpec,
+			SSHUserName:     sshUserName,
+		},
+		Status: nodeStatus,
+	}, nil
+}
+
+const (
+	labelGPUNvidia = "nvidia.com"
+)
+
+func gpuLabels(labels map[string]string) map[string]string {
+	nvidiaLabels := make(map[string]string)
+
+	for k, v := range labels {
+		if strings.Contains(k, labelGPUNvidia) {
+			nvidiaLabels[k] = v
+		}
+	}
+
+	return nvidiaLabels
+}
+
+func parseNodeConditions(node *corev1.Node) (reason string, message string) {
+	for _, condition := range node.Status.Conditions {
+		goodConditionType := condition.Type == corev1.NodeReady
+		if goodConditionType && condition.Status != corev1.ConditionTrue {
+			reason += condition.Reason + errGlue
+			message += condition.Message + errGlue
+		} else if !goodConditionType && condition.Status == corev1.ConditionTrue {
+			reason += condition.Reason + errGlue
+			message += condition.Message + errGlue
+		}
+	}
+	return reason, message
+}
+
+func apiNodeStatus(status apiv1.NodeStatus, inputNode *corev1.Node, hideInitialNodeConditions bool) apiv1.NodeStatus {
+	for _, address := range inputNode.Status.Addresses {
+		status.Addresses = append(status.Addresses, apiv1.NodeAddress{
+			Type:    string(address.Type),
+			Address: address.Address,
+		})
+	}
+
+	if !hideInitialNodeConditions || time.Since(inputNode.CreationTimestamp.Time).Minutes() > initialConditionParsingDelay {
+		reason, message := parseNodeConditions(inputNode)
+		status.ErrorReason += reason
+		status.ErrorMessage += message
+	}
+
+	status.Allocatable.Memory = inputNode.Status.Allocatable.Memory().String()
+	status.Allocatable.CPU = inputNode.Status.Allocatable.Cpu().String()
+
+	status.Capacity.Memory = inputNode.Status.Capacity.Memory().String()
+	status.Capacity.CPU = inputNode.Status.Capacity.Cpu().String()
+
+	status.NodeInfo.OperatingSystem = inputNode.Status.NodeInfo.OperatingSystem
+	status.NodeInfo.KubeletVersion = inputNode.Status.NodeInfo.KubeletVersion
+	status.NodeInfo.Architecture = inputNode.Status.NodeInfo.Architecture
+	status.NodeInfo.ContainerRuntimeVersion = inputNode.Status.NodeInfo.ContainerRuntimeVersion
+	status.NodeInfo.KernelVersion = inputNode.Status.NodeInfo.KernelVersion
+	return status
+}
+
+func getNodeList(ctx context.Context, cluster *kubermaticv1.Cluster, clusterProvider provider.ClusterProvider) (*corev1.NodeList, error) {
+	client, err := clusterProvider.GetAdminClientForUserCluster(ctx, cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeList := &corev1.NodeList{}
+	if err := client.List(ctx, nodeList); err != nil {
+		return nil, err
+	}
+	return nodeList, nil
+}
+
+func getMachinesForNodeDeployment(ctx context.Context, clusterProvider provider.ClusterProvider, userInfoGetter provider.UserInfoGetter, cluster *kubermaticv1.Cluster, projectID, nodeDeploymentID string) (*clusterv1alpha1.MachineList, error) {
+	client, err := common.GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	machineDeployment := &clusterv1alpha1.MachineDeployment{}
+	if err := client.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: nodeDeploymentID}, machineDeployment); err != nil {
+		return nil, err
+	}
+
+	machines := &clusterv1alpha1.MachineList{}
+	if err := client.List(ctx, machines, &ctrlruntimeclient.ListOptions{Namespace: metav1.NamespaceSystem, LabelSelector: labels.SelectorFromSet(machineDeployment.Spec.Selector.MatchLabels)}); err != nil {
+		return nil, err
+	}
+	return machines, nil
+}
+
+func findMachineAndNode(ctx context.Context, name string, client ctrlruntimeclient.Client) (*clusterv1alpha1.Machine, *corev1.Node, error) {
+	machineList := &clusterv1alpha1.MachineList{}
+	if err := client.List(ctx, machineList, ctrlruntimeclient.InNamespace(metav1.NamespaceSystem)); err != nil {
+		return nil, nil, fmt.Errorf("failed to load machines from cluster: %w", err)
+	}
+
+	nodeList := &corev1.NodeList{}
+	if err := client.List(ctx, nodeList); err != nil {
+		return nil, nil, fmt.Errorf("failed to load nodes from cluster: %w", err)
+	}
+
+	var node *corev1.Node
+	var machine *clusterv1alpha1.Machine
+
+	for i, n := range nodeList.Items {
+		if n.Name == name {
+			node = &nodeList.Items[i]
+			break
+		}
+	}
+
+	for i, m := range machineList.Items {
+		if m.Name == name {
+			machine = &machineList.Items[i]
+			break
+		}
+	}
+
+	// Check if we can get a owner ref from a machine
+	if node != nil && machine == nil {
+		machine = getMachineForNode(node, machineList.Items)
+	}
+
+	if machine != nil && node == nil {
+		node = getNodeForMachine(machine, nodeList.Items)
+	}
+
+	return machine, node, nil
+}
+
+func getMachineForNode(node *corev1.Node, machines []clusterv1alpha1.Machine) *clusterv1alpha1.Machine {
+	ref := metav1.GetControllerOf(node)
+	if ref == nil {
+		return nil
+	}
+	for _, machine := range machines {
+		if ref.UID == machine.UID {
+			return &machine
+		}
+	}
+	return nil
+}
+
+func getNodeForMachine(machine *clusterv1alpha1.Machine, nodes []corev1.Node) *corev1.Node {
+	for _, node := range nodes {
+		if (machine.Status.NodeRef != nil && node.UID == machine.Status.NodeRef.UID) || node.Name == machine.Name {
+			return &node
+		}
+	}
+	return nil
+}
+
+func selectedOperatingSystems(os apiv1.OperatingSystemSpec) int {
+	counter := 0
+	if os.AmazonLinux != nil {
+		counter++
+	}
+	if os.Flatcar != nil {
+		counter++
+	}
+	if os.RHEL != nil {
+		counter++
+	}
+	if os.RockyLinux != nil {
+		counter++
+	}
+	if os.Ubuntu != nil {
+		counter++
+	}
+	return counter
+}
+
+func getAutoscalingConfiguration(md *clusterv1alpha1.MachineDeployment) (*uint32, *uint32, error) {
+	var minReplicas *uint32
+	if minSize, ok := md.Annotations[machine.AutoscalerMinSizeAnnotation]; ok && minSize != "" {
+		minInt, err := strconv.ParseInt(minSize, 10, 32)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to read autoscaler min size annotation: %w", err)
+		}
+		minReplicas = ptr.To[uint32](uint32(minInt))
+	}
+
+	var maxReplicas *uint32
+	if maxSize, ok := md.Annotations[machine.AutoscalerMaxSizeAnnotation]; ok && maxSize != "" {
+		maxInt, err := strconv.ParseInt(maxSize, 10, 32)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to read autoscaler max size annotation: %w", err)
+		}
+		maxReplicas = ptr.To[uint32](uint32(maxInt))
+	}
+
+	return minReplicas, maxReplicas, nil
+}
+
+func ValidateAutoscalingOptions(spec *apiv1.NodeDeploymentSpec) (errMsg string) {
+	if spec.MaxReplicas != nil && spec.Replicas > int32(*spec.MaxReplicas) {
+		errMsg += fmt.Sprintf("replica count (%d) cannot be higher then autoscaler maxreplicas (%d).", spec.Replicas, *spec.MaxReplicas)
+	}
+	if spec.MinReplicas != nil && spec.Replicas < int32(*spec.MinReplicas) {
+		errMsg += fmt.Sprintf("replica count (%d) cannot be lower then autoscaler minreplicas (%d).", spec.Replicas, *spec.MinReplicas)
+	}
+	return errMsg
+}

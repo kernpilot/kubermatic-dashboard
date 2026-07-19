@@ -1,0 +1,416 @@
+// Copyright 2021 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'sass:map';
+@use 'km-var' as *;
+
+@mixin theme-material($colors) {
+  // Cards.
+  .mat-mdc-card {
+    color: km-var($colors, text);
+  }
+
+  .mat-mdc-card-content {
+    p {
+      color: km-var($colors, text);
+    }
+
+    button {
+      border: none;
+      color: km-var($colors, primary);
+    }
+  }
+
+  // Dialogs.
+  .mat-mdc-dialog-container {
+    --mat-dialog-supporting-text-color: #{km-var($colors, text)};
+
+    color: km-var($colors, text);
+  }
+
+  // Tables.
+  .mat-mdc-table {
+    .mat-mdc-header-cell,
+    .mat-sort-header-button {
+      color: km-var($colors, text);
+    }
+
+    td {
+      &.mat-mdc-cell {
+        border-top: 1px solid km-var($colors, divider);
+      }
+    }
+
+    .mat-sort-header-arrow {
+      .mat-sort-header-stem,
+      .mat-sort-header-pointer-left,
+      .mat-sort-header-pointer-right,
+      .mat-sort-header-pointer-middle {
+        background: none;
+      }
+    }
+
+    [aria-sort='ascending'] {
+      .mat-sort-header-arrow {
+        .mat-sort-header-indicator {
+          &::before {
+            background-color: km-var($colors, text);
+          }
+        }
+      }
+    }
+
+    [aria-sort='descending'] {
+      .mat-sort-header-arrow {
+        .mat-sort-header-indicator {
+          &::before {
+            background-color: km-var($colors, text);
+          }
+        }
+      }
+    }
+  }
+
+  .mat-mdc-paginator {
+    .mat-mdc-paginator-range-actions > .mat-mdc-icon-button:not([disabled]) {
+      color: km-var($colors, text-secondary);
+    }
+  }
+
+  // Steppers.
+  .mat-step-header {
+    .mat-step-icon {
+      background: km-var($colors, divider);
+      color: km-var($colors, text-secondary);
+
+      &.mat-step-icon-selected,
+      &.mat-step-icon-state-edit {
+        background: km-var($colors, wizard-step-background);
+        color: km-var($colors, primary);
+      }
+    }
+
+    .mat-step-label {
+      color: km-var($colors, text-secondary);
+
+      &.mat-step-label-active {
+        color: km-var($colors, wizard-step-active);
+      }
+
+      &.mat-step-label-selected {
+        color: km-var($colors, wizard-step-active);
+      }
+    }
+
+    &.cdk-program-focused {
+      background-color: unset;
+    }
+  }
+
+  // Menus.
+  .mat-drawer-container {
+    --mat-sidenav-content-background-color: #{km-var($colors, background)};
+
+    .mat-drawer-side {
+      border: none;
+    }
+  }
+
+  // Forms.
+  mat-form-field {
+    &.mat-mdc-form-field {
+      color: km-var($colors, hint-color);
+
+      --mat-form-field-outlined-outline-color: #{km-var($colors, divider)};
+      --mat-form-field-outlined-disabled-outline-color: #{km-var($colors, divider-disabled)};
+      --mat-form-field-outlined-hover-outline-color: #{km-var($colors, secondary-dark)};
+    }
+
+  }
+
+  .mat-mdc-select-arrow {
+    --mat-select-enabled-arrow-color: #{km-var($colors, text)};
+  }
+
+  .mat-mdc-option {
+    background-color: km-var($colors, option-background);
+    color: km-var($colors, text);
+
+    &:hover {
+      background-color: km-var($colors, option-background-hover);
+    }
+  }
+
+  // Buttons, sliders and checkboxes.
+  .mat-mdc-button,
+  .mat-mdc-unelevated-button,
+  .mat-mdc-raised-button {
+    --mat-button-filled-container-color: #{km-var($colors, primary)};
+    --mat-button-filled-label-text-color: #fff;
+
+    &:hover:not([disabled]) {
+      background-color: km-var($colors, primary-hover);
+    }
+
+    .km-icon-mask {
+      background-color: #fff;
+    }
+
+    &:disabled {
+      .km-icon-mask {
+        background-color: km-var($colors, text);
+        opacity: 30%;
+      }
+    }
+
+    &.mat-alternative:not([disabled]) {
+      background-color: km-var($colors, secondary);
+
+      &:hover {
+        background-color: km-var($colors, secondary-hover);
+      }
+    }
+
+    &.mat-tertiary:not([disabled]) {
+      background-color: transparent;
+      border: 1px solid km-var($colors, project-switch);
+      color: km-var($colors, text-secondary);
+
+      &:hover {
+        background-color: km-var($colors, background-hover);
+      }
+
+      .km-icon-mask {
+        background-color: km-var($colors, text-secondary);
+      }
+    }
+
+    &.mat-quaternary:not([disabled]) {
+      background-color: transparent;
+      border: 1px solid km-var($colors, divider);
+      color: km-var($colors, text);
+
+      &:hover {
+        background-color: km-var($colors, background-hover);
+      }
+
+      .km-icon-mask {
+        background-color: km-var($colors, text);
+      }
+    }
+
+    &.mat-pure:not([disabled]) {
+      background-color: transparent;
+      border: none;
+      color: km-var($colors, text-secondary);
+
+      &:hover {
+        background-color: km-var($colors, background-hover);
+      }
+
+      .km-icon-mask {
+        background-color: km-var($colors, text);
+      }
+    }
+  }
+
+  .mat-mdc-focus-indicator {
+    background-color: transparent;
+  }
+
+  .mat-mdc-icon-button {
+    .km-icon-mask {
+      background-color: km-var($colors, text);
+    }
+
+    &:hover:not([disabled]) {
+      background-color: km-var($colors, divider);
+    }
+
+    &:disabled i {
+      background-color: km-var($colors, background-disabled-button);
+    }
+
+    &.mat-alternative:not([disabled]) {
+      background-color: km-var($colors, secondary);
+
+      &:hover {
+        background-color: km-var($colors, secondary-hover);
+      }
+
+      i {
+        background-color: #fff;
+      }
+    }
+
+    &.mat-tertiary:not([disabled]) {
+      background-color: transparent;
+      border: 1px solid km-var($colors, divider);
+
+      &:hover {
+        background-color: km-var($colors, background-hover);
+      }
+    }
+  }
+
+  .mat-mdc-radio-button {
+    &.mat-accent {
+      --mat-radio-selected-icon-color: #{km-var($colors, primary)};
+      --mat-radio-selected-pressed-icon-color: var(--mat-radio-selected-icon-color);
+      --mat-radio-selected-hover-icon-color: var(--mat-radio-selected-icon-color);
+      --mat-radio-selected-focus-icon-color: var(--mat-radio-selected-icon-color);
+      --mat-radio-unselected-icon-color: #{km-var($colors, text-secondary)};
+    }
+  }
+
+  .mat-mdc-slide-toggle {
+    &.mat-accent,
+    button {
+      // track color
+      --mat-slide-toggle-selected-track-color: #{km-var($colors, primary)};
+      --mat-slide-toggle-selected-focus-track-color: var(--mat-slide-toggle-selected-track-color);
+      --mat-slide-toggle-selected-hover-track-color: var(--mat-slide-toggle-selected-track-color);
+      --mat-slide-toggle-selected-pressed-track-color: var(--mat-slide-toggle-selected-track-color);
+      --mat-slide-toggle-unselected-track-color: #{km-var($colors, divider)};
+      --mat-slide-toggle-unselected-focus-track-color: var(--mat-slide-toggle-unselected-track-color);
+      --mat-slide-toggle-unselected-hover-track-color: var(--mat-slide-toggle-unselected-track-color);
+      --mat-slide-toggle-unselected-pressed-track-color: var(--mat-slide-toggle-unselected-track-color);
+
+      // handle color
+      --mat-slide-toggle-handle-surface-color: #{km-var($colors, slide-toggle-handle-color)};
+      --mat-slide-toggle-selected-handle-color: #fafafa;
+      --mat-slide-toggle-selected-focus-handle-color: var(--mat-slide-toggle-selected-handle-color);
+      --mat-slide-toggle-selected-hover-handle-color: var(--mat-slide-toggle-selected-handle-color);
+      --mat-slide-toggle-selected-pressed-handle-color: var(--mat-slide-toggle-selected-handle-color);
+      --mat-slide-toggle-unselected-handle-color: #{km-var($colors, slide-toggle-handle-color)};
+      --mat-slide-toggle-unselected-focus-handle-color: var(--mat-slide-toggle-unselected-handle-color);
+      --mat-slide-toggle-unselected-hover-handle-color: var(--mat-slide-toggle-unselected-handle-color);
+      --mat-slide-toggle-unselected-pressed-handle-color: var(--mat-slide-toggle-unselected-handle-color);
+
+      // ripple color
+      --mat-slide-toggle-selected-focus-state-layer-color: var(--mat-slide-toggle-selected-track-color);
+      --mat-slide-toggle-selected-hover-state-layer-color: var(--mat-slide-toggle-selected-track-color);
+      --mat-slide-toggle-selected-pressed-state-layer-color: var(--mat-slide-toggle-selected-track-color);
+    }
+  }
+
+  .mat-button-toggle-group {
+    --mat-button-toggle-background-color: transparent;
+    --mat-button-toggle-selected-state-background-color: transparent;
+
+    background-color: transparent;
+
+    .mat-button-toggle {
+      background-color: transparent;
+      border-color: km-var($colors, divider);
+
+      &.mat-button-toggle-checked {
+        --mat-button-toggle-divider-color: #{km-var($colors, primary)};
+
+        background-color: transparent;
+        border-color: km-var($colors, primary);
+      }
+    }
+  }
+
+  .mdc-checkbox {
+    --mat-checkbox-selected-icon-color: #{km-var($colors, primary)};
+    --mat-checkbox-selected-hover-icon-color: var(--mat-checkbox-selected-icon-color);
+    --mat-checkbox-selected-focus-icon-color: var(--mat-checkbox-selected-icon-color);
+    --mat-checkbox-selected-pressed-icon-color: var(--mat-checkbox-selected-icon-color);
+    --mat-checkbox-selected-focus-state-layer-color: var(--mat-checkbox-selected-icon-color);
+    --mat-checkbox-selected-pressed-state-layer-color: var(--mat-checkbox-selected-icon-color);
+    --mat-checkbox-selected-focus-state-layer-opacity: 0;
+    --mat-checkbox-unselected-focus-state-layer-opacity: 0;
+  }
+
+  // Chips.
+  .mat-mdc-chip {
+    --mat-chip-elevated-container-color: transparent;
+    --mat-chip-label-text-color: #{km-var($colors, text)};
+    --mat-chip-focus-state-layer-color: none;
+    --mat-chip-hover-state-layer-color: none;
+
+    .mat-mdc-chip-remove {
+      background-color: km-var($colors, text);
+    }
+
+    .mdc-evolution-chip__action--primary {
+      background: km-var($colors, divider);
+      border: 1px solid km-var($colors, divider);
+    }
+
+    .km-chip-accent {
+      background-color: km-var($colors, background-card );
+    }
+  }
+
+  .km-chip-list-with-input {
+    .mat-mdc-chip-row {
+      border: 1px solid km-var($colors, divider);
+
+      .mdc-evolution-chip__action--primary {
+        background: transparent;
+        border: none;
+      }
+    }
+  }
+
+  // Tooltips.
+  .mat-mdc-tooltip {
+    --mat-plain-tooltip-container-color: #{km-var($colors, tooltip-background)};
+  }
+
+  // Spinners.
+  .mat-mdc-progress-spinner circle,
+  .mat-mdc-spinner circle {
+    stroke: km-var($colors, primary-hover);
+  }
+
+  // Tab group.
+  .mat-mdc-tab-group {
+    .mat-mdc-tab-header {
+      border-bottom: 1px solid km-var($colors, tab-divider);
+    }
+  }
+
+  // Snackbar
+  .mat-mdc-snack-bar-container {
+    --mat-snack-bar-container-color: #{km-var($colors, option-background)};
+  }
+
+  // Progress bar
+  .mat-mdc-progress-bar,
+  .mat-mdc-progress-bar.mat-accent {
+    /* stylelint-disable-next-line selector-class-pattern */
+    .mdc-linear-progress__buffer-bar,
+    /* stylelint-disable-next-line selector-class-pattern */
+    .mdc-linear-progress__buffer-dots {
+      background-color: km-var($colors, divider);
+      transition: none;
+    }
+
+    /* stylelint-disable-next-line selector-class-pattern */
+    .mdc-linear-progress__buffer-dots {
+      background-image: none;
+      /* stylelint-disable-next-line property-no-vendor-prefix */
+      -webkit-mask-image: none; // required for chrome
+      mask-image: none;
+    }
+  }
+
+  .mat-mdc-progress-bar.mat-accent {
+    --mat-progress-bar-active-indicator-color: #{km-var($colors, indicator-orange)};
+  }
+}

@@ -1,0 +1,101 @@
+// Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'variables';
+
+div.os-options {
+  line-height: 30px;
+  margin: 0 0 10px;
+}
+
+mat-button-toggle-group[group='operatingSystemGroup'] {
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+
+  .mat-button-toggle {
+    max-height: 45px;
+    max-width: 170px;
+    min-height: 45px;
+    min-width: 120px;
+    outline: none;
+
+    i {
+      margin-right: 10px;
+      min-height: 28px;
+      min-width: 28px;
+
+      &:not(.km-os-image-rhel) {
+        filter: grayscale(100%);
+      }
+    }
+
+    &.mat-button-toggle-checked {
+      i {
+        filter: none;
+      }
+    }
+  }
+}
+
+.mat-mdc-icon-button i {
+  background-color: transparent;
+}
+
+.provider-options {
+  font-size: variables.$font-size-card-title;
+  font-weight: normal;
+  margin: 16px 0 22px;
+}
+
+.eol-warning {
+  align-items: center;
+  display: flex;
+  font-size: variables.$font-size-body;
+
+  &.with-margin {
+    margin-bottom: 10px;
+  }
+
+  i {
+    margin: 0 8px 0 0;
+
+    &.with-margin {
+      margin-left: 8px;
+    }
+  }
+}
+
+.mat-mdc-card-header {
+  .mat-mdc-card-title {
+    i {
+      margin: 0 5px;
+    }
+  }
+}
+
+.additional-margin {
+  margin-top: 16px;
+}
+
+.quota-widget {
+  margin-bottom: 22px !important;
+}
+
+.km-icon-warning {
+  margin-bottom: 10px;
+}
+
+button:has(.km-icon-edit) {
+  width: 220px;
+}

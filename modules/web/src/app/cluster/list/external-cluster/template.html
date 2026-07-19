@@ -1,0 +1,206 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<mat-card appearance="outlined"
+          class="km-card">
+  <mat-card-header>
+    <mat-card-title>External Clusters</mat-card-title>
+  </mat-card-header>
+  <div fxLayout
+       fxLayoutAlign=" center"
+       class="header">
+    <km-search-field (queryChange)="onSearch($event)" />
+    <div fxFlex></div>
+
+    <div fxLayoutAlign="center center">
+      <router-outlet name="quota-widget"
+                     (activate)="onActivate($event)" />
+    </div>
+    <button id="km-add-external-cluster-btn"
+            mat-flat-button
+            [disabled]="!can(Permission.Create)"
+            (click)="addExternalCluster()">
+      <i class="km-icon-mask km-icon-add"
+         matButtonIcon></i>
+      <span>Import External Cluster</span>
+    </button>
+
+    <button id="km-create-external-cluster-btn"
+            mat-flat-button
+            [disabled]="!can(Permission.Create)"
+            (click)="openWizard()">
+      <i class="km-icon-mask km-icon-add"
+         matButtonIcon></i>
+      <span>Create External Cluster</span>
+    </button>
+  </div>
+
+  <mat-card-content>
+    <table class="km-table"
+           mat-table
+           matSort
+           [dataSource]="dataSource"
+           [trackBy]="trackBy">
+      <ng-container [matColumnDef]="Column.Status">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell"></th>
+        <td mat-cell
+            *matCellDef="let element">
+          <i [matTooltip]="getStatus(element)"
+             [ngClass]="getStatusColor(element)"
+             class="km-vertical-center"></i>
+        </td>
+      </ng-container>
+
+      <ng-container [matColumnDef]="Column.Name">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-30"
+            mat-sort-header>Name
+        </th>
+        <td mat-cell
+            *matCellDef="let element"
+            [attr.id]="'km-clusters-' + element.name">
+          <div fxLayoutAlign=" center"
+               fxLayoutGap="8px">
+            <span>{{element.name}}</span>
+            @if (element?.labels['is-imported'] === 'true') {
+            <span class="km-label-primary">Imported</span>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container [matColumnDef]="Column.Provider">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-20">Provider
+        </th>
+        <td mat-cell
+            *matCellDef="let element">
+          <span [ngClass]="getProvider(element.cloud) === Provider.Custom ?
+              'km-provider-logo km-provider-logo-custom-external-cluster' : 'km-provider-logo km-provider-logo-'+getProvider(element.cloud)"></span>
+        </td>
+      </ng-container>
+
+
+      <ng-container [matColumnDef]="Column.Region">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-20">Region
+        </th>
+        <td mat-cell
+            *matCellDef="let element">
+          @if (element.cloud) {
+          {{getRegion(element.cloud)}}
+          }
+        </td>
+      </ng-container>
+
+      <ng-container [matColumnDef]="Column.Imported">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell">Imported
+        </th>
+        <td mat-cell
+            *matCellDef="let element">
+          <km-relative-time [date]="element.creationTimestamp" />
+        </td>
+      </ng-container>
+
+      <ng-container [matColumnDef]="Column.Actions">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell"></th>
+        <td mat-cell
+            *matCellDef="let element">
+          <div fxLayoutAlign="end"
+               class="km-table-actions">
+            @switch (!!element.deletionTimestamp) {
+            @case (true) {
+            <mat-spinner [diameter]="25"
+                         class="km-spinner"
+                         color="accent" />
+            }
+            @case (false) {
+            <button mat-icon-button
+                    matTooltip="Disconnect Cluster"
+                    (click)="disconnectClusterDialog(element, $event)"
+                    [disabled]="!can(Permission.Delete)">
+              <i class="km-icon-mask km-icon-disconnect"></i>
+            </button>
+            @if ((!element?.labels || element?.labels['is-imported'] !== 'true') && !isClusterDeleted(element)) {
+            <button mat-icon-button
+                    [attr.id]="'km-delete-cluster-' + element.name"
+                    matTooltip="Delete Cluster"
+                    (click)="deleteClusterDialog(element, $event)"
+                    [disabled]="!can(Permission.Delete)">
+              <i class="km-icon-mask km-icon-delete"></i>
+            </button>
+            }
+            }
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row
+          class="km-header-row"
+          *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          class="km-mat-row"
+          [ngClass]="{'km-pointer': canAccess(row)}"
+          [matTooltip]="canAccess(row) ? '' : 'Cluster cannot be accessed'"
+          (click)="navigateToCluster(row)"></tr>
+    </table>
+
+    @if (isInitialized && isEmpty(clusters)) {
+    <div class="km-row km-empty-list-msg">
+      No external clusters available.
+    </div>
+    }
+
+    @if (isInitialized && !isEmpty(clusters) && isEmpty(dataSource.filteredData)) {
+    <div class="km-row km-empty-list-msg">
+      No external clusters found.
+    </div>
+    }
+
+    @if (!isInitialized) {
+    <div class="km-row">
+      <mat-spinner color="accent"
+                   class="km-spinner km-with-spacing"
+                   [diameter]="25" />
+    </div>
+    }
+
+    <div [hidden]="!isPaginatorVisible()"
+         class="km-paginator-container">
+      <div fxLayout="row"
+           fxLayoutAlign="flex-end center">
+        <km-pagination-page-size />
+        <mat-paginator showFirstLastButtons />
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<ng-template #quotaWidget>
+  <router-outlet name="quota-widget"
+                 (activate)="onActivateQuotaWidgetWithoutCard($event)" />
+</ng-template>

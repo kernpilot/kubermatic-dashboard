@@ -1,0 +1,62 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<div id="km-confirmation-dialog"
+     (keydown.enter)="onEnterKeyDown()">
+  <km-dialog-title>{{data.title}}</km-dialog-title>
+  <mat-dialog-content>
+    <p [innerHTML]="data.message"></p>
+    @if (!!data.warning) {
+    <div class="km-dialog-warning"
+         fxLayoutAlign=" center">
+      <i class="km-icon-warning"></i>
+      <span [innerHTML]="data.warning"></span>
+    </div>
+    }
+    @if (!!data.compareName && data.compareName.length > 0) {
+    <mat-form-field>
+      <mat-label>{{data.inputPlaceholder}}</mat-label>
+      <input id="km-confirmation-dialog-input"
+             matInput
+             type="text"
+             title={{data.inputTitle}}
+             (blur)="onChange($event)"
+             (keyup)="onChange($event)"
+             kmAutofocus>
+    </mat-form-field>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    @if (!data.throttleButton) {
+    <button mat-flat-button
+            [mat-dialog-close]="true"
+            id="km-confirmation-dialog-confirm-btn"
+            [disabled]="!inputNameMatches()">
+      <i [ngClass]="getIconClass()"
+         matButtonIcon></i>
+      <span>{{data.confirmLabel}}</span>
+    </button>
+    }
+    @if (data.throttleButton) {
+    <km-button [mat-dialog-close]="true"
+               id="km-confirmation-dialog-confirm-btn"
+               [icon]="getIconClass()"
+               [label]="data.confirmLabel"
+               [disabled]="!inputNameMatches()"
+               [observable]="data.observable"
+               (next)="data.next" />
+    }
+  </mat-dialog-actions>
+</div>

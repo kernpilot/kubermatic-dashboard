@@ -1,0 +1,76 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<form [formGroup]="form"
+      fxLayout="column">
+  <div [formArrayName]="Controls.CustomLinks">
+    @for (control of customLinksArray.controls; track control; let i = $index) {
+    <div [formGroupName]="i"
+         fxLayout="row"
+         fxLayoutGap="10px">
+      <mat-form-field fxFlex="22">
+        <mat-label>Label</mat-label>
+        <input matInput
+               (keyup)="check()"
+               [name]="Controls.Label"
+               [formControlName]="Controls.Label">
+        @if (control.get(Controls.Label).errors?.required) {
+        <mat-error>
+          Label is required.
+        </mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field fxFlex="40">
+        <mat-label>URL</mat-label>
+        <input matInput
+               (keyup)="check()"
+               [name]="Controls.URL"
+               [formControlName]="Controls.URL">
+        @if (control.get(Controls.URL).errors?.required) {
+        <mat-error>
+          URL is required.
+        </mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field fxFlex="25">
+        <mat-label>Icon</mat-label>
+        <input matInput
+               (keyup)="check()"
+               [name]="Controls.Icon"
+               [formControlName]="Controls.Icon">
+      </mat-form-field>
+      <mat-form-field fxFlex="13">
+        <mat-label>Location</mat-label>
+        <mat-select [formControlName]="Controls.Location"
+                    disableOptionCentering
+                    (selectionChange)="check()">
+          <mat-option [value]="Location.Default">Sidebar</mat-option>
+          <mat-option [value]="Location.Footer">Footer</mat-option>
+          <mat-option [value]="Location.HelpPanel">Help & Support</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <button mat-icon-button
+              class="custom-links-form-delete-button"
+              type="button"
+              [disabled]="!isRemovable(i)"
+              (click)="deleteLabel(i)">
+        <i class="km-icon-mask km-icon-delete"
+           aria-hidden="true"></i>
+      </button>
+      <km-spinner-with-confirmation [isSaved]="isSaved(i)" />
+    </div>
+    }
+  </div>
+</form>

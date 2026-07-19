@@ -1,0 +1,120 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<km-dialog-title>{{mode}} Token</km-dialog-title>
+
+@if (mode === modes.Create) {
+<form>
+  <mat-horizontal-stepper class="km-stepper-in-dialog"
+                          linear
+                          disableRipple
+                          [@.disabled]="true"
+                          #stepper>
+    <ng-template matStepperIcon="edit">
+      <i class="km-icon-done"></i>
+    </ng-template>
+    <mat-step [stepControl]="form.get(controls.Name)"
+              [label]="registry.Name"
+              fxFlex="100%">
+      <km-serviceaccount-token-name-step [formControl]="form.get(controls.Name)" />
+    </mat-step>
+    <mat-step [stepControl]="form.get(controls.Information)"
+              [label]="registry.Information"
+              fxFlex="100%">
+      @if (created) {
+      <km-serviceaccount-token-information-step [formControl]="form.get(controls.Information)" />
+      }
+    </mat-step>
+  </mat-horizontal-stepper>
+</form>
+}
+@if (mode === modes.Create) {
+<mat-dialog-actions>
+  @if (updating) {
+  <mat-spinner fxFlexAlign="center"
+               [diameter]="30"
+               color="accent" />
+  }
+  @if (stepperFirstIndex) {
+  <km-button id="km-serviceaccount-token-dialog-update-btn"
+             [icon]="getIconClass()"
+             [label]="mode+' Token'"
+             [disabled]="updating || form.invalid"
+             [observable]="getObservable()"
+             (next)="onNext($event)" />
+  }
+  @if (!stepperFirstIndex) {
+  <ng-container *ngTemplateOutlet="downloadButton; context: {btnId: 'km-serviceaccount-token-dialog-confirm-btn'}" />
+  }
+</mat-dialog-actions>
+}
+
+@if (mode === modes.Edit) {
+<form>
+  <mat-dialog-content>
+    <km-serviceaccount-token-name-step [formControl]="form.get(controls.Name)" />
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    @if (updating) {
+    <mat-spinner fxFlexAlign="center"
+                 [diameter]="30"
+                 color="accent" />
+    }
+    <km-button [icon]="getIconClass()"
+               [label]="mode+' Token'"
+               [disabled]="updating || form.invalid"
+               [observable]="getObservable()"
+               (next)="onNext($event)" />
+  </mat-dialog-actions>
+</form>
+}
+
+@if (mode === modes.Regenerate) {
+@if (updating) {
+<mat-spinner class="centered"
+             [diameter]="60"
+             color="accent" />
+}
+@if (!updating) {
+<mat-dialog-content>
+  <km-serviceaccount-token-information-step [formControl]="form.get(controls.Information)" />
+</mat-dialog-content>
+<mat-dialog-actions>
+  <ng-container *ngTemplateOutlet="downloadButton" />
+</mat-dialog-actions>
+}
+}
+
+<ng-template #downloadButton
+             let-btnId="btnId">
+  <a [href]="downloadURL"
+     [download]="downloadTitle"
+     mat-flat-button
+     color="alternative"
+     target="_blank"
+     rel="noopener">
+    <i class="km-icon-mask km-icon-download"
+       matButtonIcon></i>
+    <span>Download Token</span>
+  </a>
+  <button [id]="btnId"
+          mat-flat-button
+          mat-dialog-close>
+    <i class="km-icon-mask km-icon-check i-24"
+       matButtonIcon></i>
+    <span>Got it</span>
+  </button>
+</ng-template>

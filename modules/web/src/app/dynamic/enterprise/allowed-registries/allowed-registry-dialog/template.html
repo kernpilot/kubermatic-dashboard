@@ -1,0 +1,81 @@
+<!--
+               Kubermatic Enterprise Read-Only License
+                      Version 1.0 ("KERO-1.0”)
+                  Copyright © 2020 Kubermatic GmbH
+
+1. You may only view, read and display for studying purposes the source
+   code of the software licensed under this license, and, to the extent
+   explicitly provided under this license, the binary code.
+2. Any use of the software which exceeds the foregoing right, including,
+   without limitation, its execution, compilation, copying, modification
+   and distribution, is expressly prohibited.
+3. THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+END OF TERMS AND CONDITIONS
+-->
+
+<km-dialog-title>{{data.title}}</km-dialog-title>
+<mat-dialog-content>
+  @if (data.mode === Mode.Edit) {
+  <p class="km-dialog-context-description">Edit <b>{{data.allowedRegistry.name}}</b> project</p>
+  }
+
+  <form [formGroup]="form"
+        fxLayout="column">
+    @if (data.mode === Mode.Add) {
+    <mat-form-field fxFlex>
+      <mat-label>Name</mat-label>
+      <input required
+             matInput
+             [formControlName]="controls.Name"
+             type="text"
+             autocomplete="off"
+             cdkFocusInitial>
+      @if (form.get(controls.Name).hasError('required')) {
+      <mat-error>
+        <strong>Required</strong>
+      </mat-error>
+      }
+      @if (form.get(controls.Name).hasError('pattern')) {
+      <mat-error>
+        Name cannot contain special characters like | " &lt; &gt; &lbrace; &rbrace; [ ] ` \ ' ; &
+      </mat-error>
+      }
+    </mat-form-field>
+    }
+
+    <mat-form-field fxFlex>
+      <mat-label>RegistryPrefix</mat-label>
+      <input required
+             matInput
+             [formControlName]="controls.RegistryPrefix"
+             type="text"
+             autocomplete="off"
+             cdkFocusInitial
+             kmValueChangedIndicator>
+      @if (form.get(controls.RegistryPrefix).hasError('required')) {
+      <mat-error>
+        <strong>Required</strong>
+      </mat-error>
+      }
+    </mat-form-field>
+  </form>
+  <div fxLayoutAlign=" center">
+    <i class="km-icon-warning"></i>
+    <span>Adding this registry could compromise your infrastructure</span>
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <km-button id="km-allowed-registry-dialog-btn"
+             [icon]="getIconClass()"
+             [label]="label()"
+             [disabled]="form.invalid"
+             [observable]="getObservable()"
+             (next)="onNext($event)" />
+</mat-dialog-actions>

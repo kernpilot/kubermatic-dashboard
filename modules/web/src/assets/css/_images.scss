@@ -1,0 +1,659 @@
+// Copyright 2021 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'mixins';
+
+.km-frontpage-background {
+  background-attachment: fixed;
+  background-image: var(--km-background-image, url('/assets/images/branding/bg.svg'));
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.km-icon-show {
+  @include mixins.mask-image('/assets/images/icons/show.svg', 24px);
+}
+
+.km-icon-hide {
+  @include mixins.mask-image('/assets/images/icons/hide.svg', 24px);
+}
+
+.km-user {
+  @include mixins.mask-image('/assets/images/icons/user.svg', 24px);
+}
+
+.km-icon-metering {
+  @include mixins.mask-image('/assets/images/icons/metering.svg', 24px);
+}
+
+.km-icon-bell {
+  @include mixins.mask-image('/assets/images/icons/bell.svg', 24px);
+}
+
+.km-icon-search {
+  @include mixins.mask-image('/assets/images/icons/search.svg', 20px);
+}
+
+.km-icon-filter {
+  @include mixins.mask-image('/assets/images/icons/filter.svg', 24px);
+}
+
+.km-icon-clear {
+  @include mixins.mask-image('/assets/images/icons/clear.svg', 24px);
+}
+
+.km-icon-check {
+  @include mixins.mask-image('/assets/images/icons/check.svg#16', 16px, $color: #1dc67f);
+
+  &.i-12 {
+    @include mixins.mask-image('/assets/images/icons/check.svg#16', 12px);
+  }
+
+  &.i-24 {
+    @include mixins.mask-image('/assets/images/icons/check.svg#24', 24px);
+  }
+}
+
+.km-icon-collapse-menu {
+  @include mixins.mask-image('/assets/images/icons/collapse-menu.svg', 24px);
+}
+
+.km-icon-points-menu {
+  @include mixins.mask-image('/assets/images/icons/points-menu.svg', 18px);
+}
+
+.km-icon-remove {
+  @include mixins.mask-image('/assets/images/icons/remove.svg', 14px);
+}
+
+.km-icon-done {
+  @include mixins.mask-image('/assets/images/icons/check.svg#16', 12px, $color: #00a3d9);
+}
+
+.km-icon-delete {
+  @include mixins.mask-image('/assets/images/icons/trash.svg#18', 18px);
+
+  &.i-24 {
+    @include mixins.mask-image('/assets/images/icons/trash.svg#24', 24px);
+  }
+}
+
+.km-icon-edit {
+  @include mixins.mask-image('/assets/images/icons/edit.svg', 18px);
+}
+
+.km-icon-credentials {
+  @include mixins.mask-image('/assets/images/icons/credentials.svg', 18px);
+}
+
+.km-icon-connect {
+  @include mixins.mask-image('/assets/images/icons/connect.svg', 24px);
+}
+
+.km-icon-disconnect {
+  @include mixins.mask-image('/assets/images/icons/disconnect.svg', 18px);
+}
+
+.km-icon-cluster-from-template {
+  @include mixins.mask-image('/assets/images/icons/cluster-from-template.svg', 18px);
+}
+
+.km-icon-cancel {
+  @include mixins.mask-image('/assets/images/icons/x.svg', 24px);
+}
+
+.km-icon-regenerate {
+  @include mixins.mask-image('/assets/images/icons/regenerate.svg', 18px);
+}
+
+.km-icon-reconnect {
+  @include mixins.mask-image('/assets/images/icons/reconnect.svg', 18px);
+}
+
+.km-icon-clock {
+  @include mixins.mask-image('/assets/images/icons/clock.svg', 18px);
+}
+
+.km-icon-running {
+  @include mixins.background-image('/assets/images/icons/check.svg#16', 16px);
+
+  background-color: #1dc67f;
+  background-size: 0;
+  border-radius: 50%;
+  margin: 4px 14px 4px 0;
+}
+
+.km-icon-warning-state {
+  @include mixins.background-image('/assets/images/icons/warning.svg', 16px);
+
+  background-color: rgb(255 196 87);
+  background-size: 12px;
+  border-radius: 50%;
+  margin: 4px 14px 4px 0;
+}
+
+.km-icon-stopped {
+  @include mixins.background-image('/assets/images/icons/circle-empty.svg', 16px);
+
+  background-size: 16px;
+  border: solid #eb5757 4px;
+  border-radius: 50%;
+  margin: 4px 14px 4px 0;
+}
+
+.km-icon-pending {
+  @include mixins.mask-image('/assets/images/icons/spinner.svg', 16px, 16px, #7e868f);
+
+  &.i-24 {
+    @include mixins.size(24px, 24px, true);
+  }
+}
+
+.km-icon-error {
+  @include mixins.background-image('/assets/images/icons/error.svg', 16px);
+
+  background-color: #eb5757;
+  background-size: 8px;
+  border-radius: 50%;
+  margin: 4px 14px 4px 0;
+}
+
+.km-icon-notification-error {
+  @include mixins.background-image('/assets/images/icons/warning.svg', 16px);
+
+  background-color: #eb5757;
+  background-size: 14px;
+  border-radius: 50%;
+}
+
+.km-icon-notification-success {
+  @include mixins.background-image('/assets/images/icons/check-white.svg', 16px);
+
+  background-color: #1dc67f;
+  background-size: 10px;
+  border-radius: 50%;
+}
+
+.km-icon-unknown {
+  @include mixins.background-image('/assets/images/icons/circle-empty.svg', 16px);
+
+  margin: 4px 14px 4px 0;
+}
+
+.km-icon-warning {
+  @include mixins.background-image('/assets/images/icons/triangle.svg', 22px);
+
+  margin: 4px 14px 4px 0;
+}
+
+.km-icon-power-on {
+  @include mixins.mask-image('/assets/images/icons/power.svg', 18px, $color: #1dc67f);
+}
+
+.km-icon-power-off {
+  @include mixins.mask-image('/assets/images/icons/power.svg', 18px, $color: #cad1d9);
+}
+
+.km-icon-power {
+  @include mixins.mask-image('/assets/images/icons/power.svg', 18px);
+}
+
+.km-icon-download {
+  @include mixins.mask-image('/assets/images/icons/download.svg', 24px, $color: #fff);
+}
+
+.km-icon-share {
+  @include mixins.mask-image('/assets/images/icons/share.svg', 24px);
+}
+
+.km-icon-copy {
+  @include mixins.mask-image('/assets/images/icons/copy.svg', 20px, $color: #fff);
+}
+
+.km-icon-copy-small {
+  @include mixins.mask-image('/assets/images/icons/copy-small.svg', 12px);
+}
+
+.km-icon-update-available {
+  @include mixins.background-image('/assets/images/icons/update-available.svg', 16px);
+}
+
+.km-icon-update-available-arrow {
+  @include mixins.mask-image('/assets/images/icons/update-available-arrow.svg', 16px);
+}
+
+.km-icon-cluster {
+  @include mixins.mask-image('/assets/images/icons/clusters.svg', 24px);
+}
+
+.km-icon-backup {
+  @include mixins.mask-image('/assets/images/icons/backups.svg', 24px);
+}
+
+.km-icon-cluster-backup {
+  @include mixins.mask-image('/assets/images/icons/cluster-backups.svg', 24px);
+}
+
+.km-icon-key {
+  @include mixins.mask-image('/assets/images/icons/ssh-keys.svg', 24px);
+}
+
+.km-icon-cluster-template {
+  @include mixins.mask-image('/assets/images/icons/cluster-template.svg', 24px);
+}
+
+.km-icon-member {
+  @include mixins.mask-image('/assets/images/icons/members.svg', 24px);
+}
+
+.km-icon-group {
+  @include mixins.mask-image('/assets/images/icons/groups.svg', 24px);
+}
+
+.km-icon-serviceaccount {
+  @include mixins.mask-image('/assets/images/icons/service-accounts.svg', 24px);
+}
+
+.km-icon-randomize {
+  @include mixins.background-image('/assets/images/icons/randomize.svg', 16px);
+}
+
+.km-icon-arrow-down {
+  @include mixins.mask-image('/assets/images/icons/arrow-down.svg', 12px);
+
+  &.i-14 {
+    @include mixins.size(14px, 14px, true);
+  }
+}
+
+.km-icon-arrow-up {
+  @include mixins.mask-image('/assets/images/icons/arrow-down.svg', 12px);
+
+  transform: rotate(180deg);
+
+  &.i-14 {
+    @include mixins.size(14px, 14px, true);
+  }
+}
+
+.km-icon-arrow-left {
+  @include mixins.mask-image('/assets/images/icons/arrow-down.svg', 16px);
+
+  transform: rotate(90deg);
+}
+
+.km-icon-arrow-right {
+  @include mixins.mask-image('/assets/images/icons/arrow-down.svg', 12px);
+
+  transform: rotate(-90deg);
+
+  &.i-14 {
+    @include mixins.size(14px, 14px, true);
+  }
+
+  &.i-16 {
+    @include mixins.size(16px, 16px, true);
+  }
+}
+
+.km-icon-close {
+  @include mixins.mask-image('/assets/images/icons/close.svg', 20px);
+}
+
+.km-icon-info {
+  @include mixins.background-image('/assets/images/icons/info.svg', 16px);
+}
+
+.km-icon-circle {
+  @include mixins.mask-image('/assets/images/icons/circle.svg', 14px);
+}
+
+.km-icon-back {
+  @include mixins.mask-image('/assets/images/icons/back.svg', 24px);
+}
+
+.km-icon-next {
+  @include mixins.mask-image('/assets/images/icons/back.svg', 24px);
+
+  transform: rotate(180deg);
+}
+
+.km-icon-add {
+  @include mixins.mask-image('/assets/images/icons/plus.svg', 18px);
+}
+
+.km-icon-save {
+  @include mixins.mask-image('/assets/images/icons/save.svg', 24px);
+}
+
+.km-icon-reset {
+  @include mixins.mask-image('/assets/images/icons/reset.svg', 18px);
+}
+
+.km-icon-failed {
+  @include mixins.mask-image('/assets/images/icons/warning.svg', 16px, $color: #eb5757);
+}
+
+.km-icon-warning-event {
+  @include mixins.mask-image('/assets/images/icons/warning-event.svg', 16px, $color: #eb5757);
+}
+
+.km-icon-disabled {
+  @include mixins.mask-image('/assets/images/icons/close.svg', 16px, $color: #7e868f);
+}
+
+.km-icon-labels {
+  @include mixins.mask-image('/assets/images/icons/labels.svg', 24px);
+
+  transform: rotate(180deg);
+}
+
+.km-icon-link {
+  @include mixins.mask-image('/assets/images/icons/link.svg', 24px);
+}
+
+.km-icon-external-link {
+  @include mixins.mask-image('/assets/images/icons/external-link.svg', 24px);
+
+  &.i-18 {
+    @include mixins.size(18px, 18px, true);
+  }
+}
+
+.km-icon-help {
+  @include mixins.mask-image('/assets/images/icons/help.svg', 24px);
+}
+
+.km-icon-loading {
+  @include mixins.mask-image('/assets/images/icons/sandclock.svg', 28px);
+}
+
+.km-icon-owner {
+  @include mixins.mask-image('/assets/images/icons/owner.svg', 24px);
+}
+
+.km-icon-role {
+  @include mixins.mask-image('/assets/images/icons/role.svg', 24px);
+}
+
+.km-icon-projects-table {
+  @include mixins.mask-image('/assets/images/icons/projects-table.svg', 24px);
+}
+
+.km-icon-projects-card {
+  @include mixins.mask-image('/assets/images/icons/projects-cards.svg', 24px);
+
+  &.i-40 {
+    @include mixins.size(40px, 40px, true);
+  }
+}
+
+.km-icon-sun {
+  @include mixins.mask-image('/assets/images/icons/sun.svg', 24px);
+}
+
+.km-icon-moon {
+  @include mixins.mask-image('/assets/images/icons/moon.svg', 24px);
+}
+
+.km-icon-sparkles {
+  @include mixins.mask-image('/assets/images/icons/sparkles.svg', 24px, $color: #00c9c9);
+}
+
+.km-icon-kubernetes {
+  @include mixins.background-image('/assets/images/icons/kubernetes.svg', 30px);
+}
+
+.km-icon-seed {
+  @include mixins.mask-image('/assets/images/icons/seed.svg', 24px);
+}
+
+.km-icon-opa {
+  @include mixins.mask-image('/assets/images/icons/opa.svg', 24px);
+}
+
+.km-icon-rulegroups {
+  @include mixins.mask-image('/assets/images/icons/rulegroups.svg', 24px);
+}
+
+.km-icon-defaults {
+  @include mixins.mask-image('/assets/images/icons/defaults.svg', 24px);
+}
+
+.km-icon-node {
+  @include mixins.mask-image('/assets/images/icons/node.svg', 24px);
+}
+
+.km-icon-id {
+  @include mixins.mask-image('/assets/images/icons/id.svg', 24px);
+}
+
+.km-icon-interface {
+  @include mixins.mask-image('/assets/images/icons/interface.svg', 24px);
+}
+
+.km-icon-restore {
+  @include mixins.mask-image('/assets/images/icons/restore.svg', 18px);
+}
+
+.km-icon-terminal {
+  @include mixins.mask-image('/assets/images/icons/terminal.svg', 28px);
+
+  &.i-16 {
+    @include mixins.size(16px, 16px, true);
+  }
+}
+
+.km-icon-terminal-placeholder {
+  @include mixins.mask-image('/assets/images/icons/webterminal-placeholder.svg', 28px);
+
+  &.i-60 {
+    @include mixins.size(60px, 60px, true);
+  }
+}
+
+.km-icon-quota {
+  @include mixins.mask-image('/assets/images/icons/quota.svg', 24px);
+}
+
+.km-icon-helm {
+  @include mixins.provider-image('/assets/images/icons/helm.svg', 24px);
+}
+
+.km-icon-git {
+  @include mixins.provider-image('/assets/images/icons/git.svg', 24px);
+}
+
+.km-icon-namespace {
+  @include mixins.mask-image('/assets/images/icons/namespace.svg', 24px);
+}
+
+.km-icon-application {
+  @include mixins.mask-image('/assets/images/icons/application.svg', 24px);
+
+  &.i-40 {
+    @include mixins.size(40px, 40px, true);
+  }
+}
+
+.km-icon-code {
+  @include mixins.mask-image('/assets/images/icons/code.svg', 18px);
+}
+
+.km-icon-docs {
+  @include mixins.mask-image('/assets/images/icons/docs.svg', 18px);
+}
+
+.km-icon-announcement {
+  @include mixins.mask-image('/assets/images/icons/announcement.svg', 18px);
+
+  &.i-24 {
+    @include mixins.size(24px, 24px, true);
+  }
+}
+
+.km-icon-folder {
+  @include mixins.mask-image('/assets/images/icons/folder.svg', 18px);
+}
+
+.km-icon-folder-open {
+  @include mixins.mask-image('/assets/images/icons/folder-open.svg', 18px);
+}
+
+.km-icon-file {
+  @include mixins.mask-image('/assets/images/icons/file.svg', 14px);
+
+  .i-12 {
+    @include mixins.size(12px, 12px, true);
+  }
+}
+
+.km-icon-import {
+  @include mixins.mask-image('/assets/images/icons/import.svg', 24px);
+}
+
+.km-icon-upload {
+  @include mixins.mask-image('/assets/images/icons/upload.svg', 24px);
+}
+
+.km-provider-logo-alibaba {
+  @include mixins.provider-image('/assets/images/clouds/alibaba.svg', 115px, 30px);
+}
+
+.km-provider-logo-anexia {
+  @include mixins.provider-image('/assets/images/clouds/anexia.svg', 95px, 24px);
+}
+
+.km-provider-logo-aws {
+  @include mixins.provider-image('/assets/images/clouds/aws.svg', 36px, 20px);
+}
+
+.km-provider-logo-azure {
+  @include mixins.provider-image('/assets/images/clouds/azure.svg', 70px, 22px);
+}
+
+.km-provider-logo-bringyourown {
+  @include mixins.provider-image('/assets/images/clouds/bringyourown.svg', 95px, 30px);
+}
+
+.km-provider-logo-digitalocean {
+  @include mixins.provider-image('/assets/images/clouds/digitalocean.svg', 110px, 24px);
+}
+
+.km-provider-logo-gcp {
+  @include mixins.provider-image('/assets/images/clouds/gcp.svg', 115px, 30px);
+}
+
+.km-provider-logo-hetzner {
+  @include mixins.provider-image('/assets/images/clouds/hetzner.svg', 95px, 20px);
+}
+
+.km-provider-logo-nutanix {
+  @include mixins.provider-image('/assets/images/clouds/nutanix.svg', 95px, 30px);
+}
+
+.km-provider-logo-openstack {
+  @include mixins.provider-image('/assets/images/clouds/openstack.svg', 95px, 30px);
+}
+
+
+
+.km-provider-logo-kubevirt {
+  @include mixins.provider-image('/assets/images/clouds/kubevirt.svg', 95px, 30px);
+}
+
+.km-provider-logo-vsphere {
+  @include mixins.provider-image('/assets/images/clouds/vsphere.png', 95px, 26px);
+}
+
+.km-provider-logo-vmwareclouddirector {
+  @include mixins.provider-image('/assets/images/clouds/vmwareclouddirector.svg', 95px, 26px);
+}
+
+.km-provider-logo-edge {
+  @include mixins.provider-image('/assets/images/clouds/edge.svg', 65px, 26px);
+}
+
+.km-provider-logo-baremetal {
+  @include mixins.provider-image('/assets/images/clouds/baremetal.svg', 110px, 30px);
+}
+
+.km-provider-logo-gke {
+  @include mixins.provider-image('/assets/images/clouds/gke.svg', 130px, 30px);
+}
+
+.km-provider-logo-aks {
+  @include mixins.provider-image('/assets/images/clouds/aks.svg', 130px, 30px);
+}
+
+.km-provider-logo-eks {
+  @include mixins.provider-image('/assets/images/clouds/eks.svg', 130px, 30px);
+}
+
+.km-provider-logo-custom-external-cluster {
+  @include mixins.provider-image('/assets/images/clouds/customkubernetescluster.svg', 130px, 30px);
+}
+
+.km-provider-logo-kubeone {
+  @include mixins.provider-image('/assets/images/clouds/kubeone.svg', 130px, 30px);
+}
+
+.km-os-image-container-linux {
+  @include mixins.background-image('/assets/images/os/container-linux.svg', 24px);
+}
+
+.km-os-image-ubuntu {
+  @include mixins.background-image('/assets/images/os/ubuntu.svg', 24px);
+}
+
+.km-os-image-amazon-linux-2 {
+  @include mixins.background-image('/assets/images/os/amazon-linux-2.svg', 24px);
+}
+
+.km-os-image-rhel {
+  @include mixins.background-image('/assets/images/os/rhel.svg', 24px);
+}
+
+.km-os-image-rhel-gray {
+  @include mixins.background-image('/assets/images/os/rhel-gray.svg', 24px);
+}
+
+.km-os-image-flatcar {
+  @include mixins.background-image('/assets/images/os/flatcar.svg', 24px);
+}
+
+.km-os-image-rockylinux {
+  @include mixins.background-image('/assets/images/os/rocky-linux.svg', 24px);
+}
+
+.km-cni-image-canal {
+  @include mixins.background-image('/assets/images/cni/canal.svg', 50px);
+}
+
+.km-cni-image-cilium {
+  @include mixins.background-image('/assets/images/cni/cilium.svg', 80px);
+}
+
+.km-icon-kyverno {
+  @include mixins.mask-image('/assets/images/icons/kyverno.svg', 24px);
+}
+
+@for $i from 1 through 50 {
+  $w: 2 * $i;
+
+  .w-#{$w} {
+    @include mixins.size(#{$w}#{'px'}, $force: true);
+  }
+}

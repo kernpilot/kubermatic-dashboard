@@ -1,0 +1,311 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "kubermatic": {
+      "root": "",
+      "sourceRoot": "src",
+      "projectType": "application",
+      "prefix": "km",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "sourceMap": true,
+            "outputPath": {
+              "base": "dist",
+              "browser": ""
+            },
+            "index": "src/index.html",
+            "tsConfig": "src/tsconfig.ee.json",
+            "outputHashing": "all",
+            "polyfills": ["src/polyfills.ts"],
+            "assets": [
+              "src/assets",
+              "src/favicon.png",
+              {
+                "glob": "**/*",
+                "input": "node_modules/monaco-editor",
+                "output": "/assets/monaco/"
+              }
+            ],
+            "allowedCommonJsDependencies": [
+              "country-code-lookup",
+              "cron-validator",
+              "lodash",
+              "moment",
+              "semver",
+              "swagger-ui"
+            ],
+            "stylePreprocessorOptions": {
+              "includePaths": ["src/assets/css", "node_modules/"]
+            },
+            "styles": [
+              "src/assets/css/root.scss",
+              "node_modules/@xterm/xterm/css/xterm.css",
+              {
+                "input": "src/assets/themes/light.scss",
+                "bundleName": "light",
+                "inject": false
+              },
+              {
+                "input": "src/assets/themes/dark.scss",
+                "bundleName": "dark",
+                "inject": false
+              },
+              {
+                "input": "src/assets/themes/custom.scss",
+                "bundleName": "custom",
+                "inject": false
+              }
+            ],
+            "scripts": ["node_modules/jquery/dist/jquery.js"],
+            "extractLicenses": false,
+            "optimization": false,
+            "namedChunks": true,
+            "browser": "src/main.ts"
+          },
+          "configurations": {
+            "default-ce": {
+              "tsConfig": "src/tsconfig.ce.json",
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/app/dynamic/module-registry.ts",
+                  "with": "src/app/dynamic/module-registry.ce.ts"
+                }
+              ]
+            },
+            "production-ee": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ]
+            },
+            "production-ce": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "tsConfig": "src/tsconfig.ce.json",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                },
+                {
+                  "replace": "src/app/dynamic/module-registry.ts",
+                  "with": "src/app/dynamic/module-registry.ce.ts"
+                }
+              ]
+            },
+            "e2e-ee": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "optimization": false,
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.e2e.ts"
+                }
+              ]
+            },
+            "e2e-ce": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "optimization": false,
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "tsConfig": "src/tsconfig.ce.json",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.e2e.ts"
+                },
+                {
+                  "replace": "src/app/dynamic/module-registry.ts",
+                  "with": "src/app/dynamic/module-registry.ce.ts"
+                }
+              ]
+            },
+            "e2e-local-ee": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "optimization": false,
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.e2e.local.ts"
+                }
+              ]
+            },
+            "e2e-local-ce": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "optimization": false,
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "tsConfig": "src/tsconfig.ce.json",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.e2e.local.ts"
+                },
+                {
+                  "replace": "src/app/dynamic/module-registry.ts",
+                  "with": "src/app/dynamic/module-registry.ce.ts"
+                }
+              ]
+            },
+            "e2e-mock-ee": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "optimization": false,
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.e2e.mock.ts"
+                }
+              ]
+            },
+            "e2e-mock-ce": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "optimization": false,
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "tsConfig": "src/tsconfig.ce.json",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.e2e.mock.ts"
+                },
+                {
+                  "replace": "src/app/dynamic/module-registry.ts",
+                  "with": "src/app/dynamic/module-registry.ce.ts"
+                }
+              ]
+            }
+          }
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "./proxy.conf.cjs",
+            "port": 8000,
+            "buildTarget": "kubermatic:build"
+          },
+          "configurations": {
+            "default-ee": {},
+            "default-ce": {
+              "buildTarget": "kubermatic:build:default-ce"
+            },
+            "production-ee": {
+              "buildTarget": "kubermatic:build:production-ee"
+            },
+            "production-ce": {
+              "buildTarget": "kubermatic:build:production-ce"
+            },
+            "e2e-ee": {
+              "buildTarget": "kubermatic:build:e2e-ee"
+            },
+            "e2e-ce": {
+              "buildTarget": "kubermatic:build:e2e-ce"
+            },
+            "e2e-local-ee": {
+              "buildTarget": "kubermatic:build:e2e-local-ee"
+            },
+            "e2e-local-ce": {
+              "buildTarget": "kubermatic:build:e2e-local-ce"
+            },
+            "e2e-mock-ee": {
+              "buildTarget": "kubermatic:build:e2e-mock-ee"
+            },
+            "e2e-mock-ce": {
+              "buildTarget": "kubermatic:build:e2e-mock-ce"
+            }
+          }
+        },
+        "extract-i18n": {
+          "builder": "@angular/build:extract-i18n",
+          "options": {
+            "buildTarget": "kubermatic:build"
+          }
+        }
+      }
+    }
+  },
+  "schematics": {
+    "@schematics/angular:component": {
+      "prefix": "km"
+    },
+    "@schematics/angular:directive": {
+      "prefix": "km"
+    },
+    "@schematics/angular:guard": {},
+    "@schematics/angular:interface": {},
+    "@schematics/angular:module": {},
+    "@schematics/angular:pipe": {},
+    "@schematics/angular:service": {}
+  },
+  "cli": {
+    "analytics": false
+  }
+}

@@ -1,0 +1,74 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<form [formGroup]="form"
+      fxLayout="column"
+      fxLayoutGap="8px">
+
+  <mat-form-field fxFlex>
+    <mat-label>Domain</mat-label>
+    <input matInput
+           [formControlName]="Controls.Domain"
+           [name]="Controls.Domain"
+           [matAutocomplete]="autoDomain"
+           [required]="isRequired(Controls.Domain)">
+    <mat-autocomplete #autoDomain="matAutocomplete">
+      @for (domain of domains; track domain) {
+      <mat-option [value]="domain.name">
+        {{domain.name}}
+      </mat-option>
+      }
+    </mat-autocomplete>
+    @if (form.get(Controls.Domain).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+
+  <km-openstack-credentials [formControl]="form.get(Controls.Credentials)"
+                            (onChange)="onCredentialsChange($event)" />
+
+  @if (!selectedPresetFloatingIPPool || floatingIPPoolsLabel !== FloatingIPPoolState.Empty) {
+  <km-combobox #floatingIPPoolCombobox
+               [required]="isRequired(Controls.FloatingIPPool)"
+               [grouped]="false"
+               [isDisabled]="form.get(Controls.FloatingIPPool).disabled"
+               [options]="floatingIPPools"
+               [hint]="getHint(Controls.FloatingIPPool)"
+               [formControlName]="Controls.FloatingIPPool"
+               (changed)="onFloatingIPPoolChange($event)"
+               [label]="floatingIPPoolsLabel"
+               inputLabel="Select Floating IP Pool..."
+               filterBy="name">
+    <div *option="let floatingIPPool">
+      {{floatingIPPool.name}}
+    </div>
+  </km-combobox>
+  } @else {
+  <mat-form-field fxFlex>
+    <mat-label>{{FloatingIPPoolState.Ready}}</mat-label>
+    <input [name]="Controls.FloatingIPPool"
+           [value]="selectedPresetFloatingIPPool"
+           matInput
+           autocomplete="off"
+           disabled
+           required>
+    <mat-hint>
+      No floating IP pools available so floating IP pool from the preset will be used.
+    </mat-hint>
+  </mat-form-field>
+  }
+</form>

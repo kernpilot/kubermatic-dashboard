@@ -1,0 +1,159 @@
+// Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'variables';
+@use 'mixins';
+
+$view-switch-height: 45px;
+$view-switch-width: 50px;
+$project-card-height-default: 230px;
+$project-card-height-extended: 273px;
+$project-card-width: 330px;
+
+.projects-spinner {
+  margin: 20px auto;
+}
+
+.placeholder {
+  height: 75vh;
+
+  & h2 {
+    font-weight: variables.$font-weight-medium;
+    margin: 15px 0;
+  }
+
+  & .placeholder-text {
+    margin-bottom: 10px;
+
+    & p {
+      margin: 0 0 10px;
+    }
+  }
+}
+
+.project-view-switch {
+  .mat-button-toggle {
+    @include mixins.size($view-switch-width, $view-switch-height, true);
+
+    border-radius: unset;
+    margin: 0;
+
+    &:first-child {
+      border-bottom-left-radius: variables.$border-radius;
+      border-top-left-radius: variables.$border-radius;
+    }
+
+    &:last-child {
+      border-bottom-right-radius: variables.$border-radius;
+      border-top-right-radius: variables.$border-radius;
+    }
+  }
+}
+
+.project-cards-view {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, $project-card-width);
+  margin-top: 20px;
+
+  button {
+    opacity: 75%;
+  }
+
+  .km-icon-cluster {
+    @include mixins.size(24px);
+  }
+
+  .mat-mdc-card {
+    @include mixins.size($project-card-width, $project-card-height-default, true);
+
+    box-shadow: variables.$border-box-shadow;
+    margin-top: 0;
+    padding: 0;
+
+    &.project-card-extended {
+      @include mixins.size($project-card-width, $project-card-height-extended, true);
+    }
+
+    button {
+      &.mat-mdc-icon-button {
+        @include mixins.size(40px);
+      }
+    }
+
+    &.active-project-card:hover {
+      box-shadow: variables.$border-box-shadow-hover;
+      cursor: pointer;
+    }
+
+    &:hover {
+      button {
+        opacity: 100%;
+        transition: opacity 0.1s ease-out;
+      }
+    }
+  }
+
+  .mat-mdc-card-header {
+    padding: 20px;
+  }
+
+  .mat-mdc-card-title {
+    line-height: 23px;
+    margin: 0 5px 0 0;
+    overflow: hidden;
+    padding: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 175px;
+  }
+
+  .mat-mdc-card-subtitle {
+    line-height: 16px;
+    margin: 0;
+    padding: 5px 0 0;
+
+    strong {
+      font-family: variables.$font-primary-mono;
+      margin-right: 5px;
+    }
+  }
+
+  .project-cards-status {
+    @include mixins.size(27px, auto);
+
+    align-items: center;
+    display: flex;
+    margin-right: 12px;
+  }
+
+  .mat-mdc-card-content {
+    padding: 30px 20px 20px;
+  }
+}
+
+@include mixins.breakpoint('large') {
+  .project-cards-view {
+    gap: 10px;
+  }
+}
+
+.all-projects-toggle {
+  float: right;
+  padding-right: 16px;
+}
+
+.owners-card-view {
+  margin-top: 15px;
+}

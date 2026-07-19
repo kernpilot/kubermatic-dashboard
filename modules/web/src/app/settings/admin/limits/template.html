@@ -1,0 +1,146 @@
+<!--
+Copyright 2022 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title fxFlex
+                    fxLayout="row"
+                    fxLayoutAlign=" center">
+      <div fxFlex>Limits</div>
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <div fxLayout="column"
+         fxLayoutGap="32px"
+         class="admin-settings">
+      <div fxFlex
+           fxLayout="column"
+           fxLayoutGap="10px">
+        <div fxLayout="row"
+             fxLayoutAlign=" baseline">
+          <div fxFlex="16%"
+               class="entry-label">
+            <div fxLayout="row"
+                 fxLayoutAlign="start center"
+                 fxLayoutGap="5px">
+              <span>Project Restrictions</span>
+              <div class="km-icon-info km-pointer"
+                   matTooltip="Control which project operations are restricted to administrators only. When enabled, regular users will not be able to perform these actions."></div>
+            </div>
+          </div>
+          <div fxLayout="row">
+            <div fxLayout="row wrap"
+                 fxLayoutGap="8px">
+              <mat-checkbox id="km-project-admin-only-setting"
+                            [(ngModel)]="settings.restrictProjectCreation"
+                            (change)="onSettingsChange()">Restrict Creation to Administrators
+              </mat-checkbox>
+              <mat-checkbox [(ngModel)]="settings.restrictProjectModification"
+                            (change)="onSettingsChange()">Restrict Modification to Administrators
+              </mat-checkbox>
+              <mat-checkbox [(ngModel)]="settings.restrictProjectDeletion"
+                            (change)="onSettingsChange()">Restrict Deletion to Administrators
+              </mat-checkbox>
+            </div>
+            <km-spinner-with-confirmation [isSaved]="isEqual(settings.restrictProjectCreation, apiSettings.restrictProjectCreation) && 
+                                                      isEqual(settings.restrictProjectDeletion, apiSettings.restrictProjectDeletion) && 
+                                                      isEqual(settings.restrictProjectModification, apiSettings.restrictProjectModification)" />
+          </div>
+        </div>
+
+        <div fxLayout="row"
+             fxLayoutAlign=" baseline">
+          <div fxFlex="16%"
+               class="entry-label">
+            <div fxLayout="row"
+                 fxLayoutAlign="start center"
+                 fxLayoutGap="5px">
+              <span>User Projects Limit</span>
+              <div class="km-icon-info km-pointer"
+                   matTooltip="Limit the amount of projects users are allowed to create. Set the limit to 0 to allow unlimited project creation for users. This setting does not affect administrators."></div>
+            </div>
+          </div>
+          <div fxLayout="row">
+            <div fxLayout="row wrap"
+                 fxLayoutAlign=" baseline"
+                 fxLayoutGap="16px">
+              <km-number-stepper [(ngModel)]="settings.userProjectsLimit"
+                                 (ngModelChange)="onSettingsChange()"
+                                 id="km-project-limit-setting"
+                                 label="User Projects Limit"
+                                 min="0"
+                                 required />
+            </div>
+            <km-spinner-with-confirmation [isSaved]="isEqual(settings.userProjectsLimit, apiSettings.userProjectsLimit)" />
+          </div>
+        </div>
+
+        <div fxLayout="row"
+             fxLayoutAlign=" baseline">
+          <div fxFlex="16%"
+               class="entry-label">
+            <div fxLayout="row"
+                 fxLayoutAlign="start center"
+                 fxLayoutGap="5px">
+              <span>Resource Filter</span>
+              <div class="km-icon-info km-pointer"
+                   matTooltip="Hides machine sizes that do not meet the specified conditions in wizard and edit dialogs. Set limit to 0 for the respective limit to be disabled. Datacenter level resource filter values will have higher precedence over global settings."></div>
+            </div>
+          </div>
+
+          <div fxLayout="row">
+            <div fxLayout="row wrap"
+                 fxLayoutAlign=" baseline"
+                 fxLayoutGap="16px">
+              <km-number-stepper [(ngModel)]="settings.machineDeploymentVMResourceQuota.minCPU"
+                                 (ngModelChange)="onSettingsChange()"
+                                 id="km-cpu-resource-quota-setting"
+                                 label="Min CPU"
+                                 min="0"
+                                 required />
+
+              <km-number-stepper [(ngModel)]="settings.machineDeploymentVMResourceQuota.maxCPU"
+                                 (ngModelChange)="onSettingsChange()"
+                                 label="Max CPU"
+                                 min="0"
+                                 required />
+
+              <km-number-stepper [(ngModel)]="settings.machineDeploymentVMResourceQuota.minRAM"
+                                 (ngModelChange)="onSettingsChange()"
+                                 id="km-ram-resource-quota-setting"
+                                 label="Min RAM (GB)"
+                                 min="0"
+                                 required />
+
+              <km-number-stepper [(ngModel)]="settings.machineDeploymentVMResourceQuota.maxRAM"
+                                 (ngModelChange)="onSettingsChange()"
+                                 label="Max RAM (GB)"
+                                 min="0"
+                                 required />
+
+              <mat-checkbox [(ngModel)]="settings.machineDeploymentVMResourceQuota.enableGPU"
+                            (change)="onSettingsChange()">Enable GPU
+              </mat-checkbox>
+            </div>
+
+            <km-spinner-with-confirmation [isSaved]="isEqual(settings.machineDeploymentVMResourceQuota, apiSettings.machineDeploymentVMResourceQuota)" />
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>

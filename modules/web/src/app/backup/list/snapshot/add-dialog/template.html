@@ -1,0 +1,120 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<div id="km-add-snapshot-dialog">
+  <km-dialog-title>Add Snapshot</km-dialog-title>
+
+  <mat-dialog-content>
+    <form [formGroup]="form"
+          fxFlex
+          fxLayout="column"
+          fxLayoutGap="10px">
+      <mat-form-field>
+        @if (clusters.length > 0) {
+        <mat-label>Cluster</mat-label>
+        }
+        @if (clusters.length === 0) {
+        <mat-label>No Clusters Available</mat-label>
+        }
+        <mat-select [formControlName]="Controls.Cluster"
+                    disableOptionCentering
+                    required>
+          @for (cluster of clusters; track cluster) {
+          <mat-option [value]="cluster.id">{{cluster.name}}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>The list of existing clusters for the selected project.</mat-hint>
+        @if (form.get(Controls.Cluster).hasError('required')) {
+        <mat-error>
+          <strong>Required</strong>
+        </mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Name</mat-label>
+        <input [formControlName]="Controls.Name"
+               matInput
+               required>
+        <mat-hint>The name of the created automatic backup.</mat-hint>
+        @if (form.get(Controls.Name).hasError('required')) {
+        <mat-error>
+          <strong>Required</strong>
+        </mat-error>
+        }
+      </mat-form-field>
+
+      @if (!!this.form.get(Controls.Cluster).value && !this.isLoadingDestinations) {
+      <div fxLayout="column"
+           fxLayoutGap="10px">
+        <km-property>
+          <div key>Seed</div>
+          <div value>{{seed}}</div>
+        </km-property>
+        <mat-form-field>
+          @if (hasDestinations()) {
+          <mat-label>Destination</mat-label>
+          }
+          @if (!hasDestinations()) {
+          <mat-label>No destinations available</mat-label>
+          }
+          <mat-select [formControlName]="Controls.Destination"
+                      disableOptionCentering
+                      required>
+            @for (destination of destinations; track destination) {
+            <mat-option [value]="destination">{{destination}}</mat-option>
+            }
+          </mat-select>
+          @if (isAdmin && !hasDestinations()) {
+          <mat-hint>
+            <a class="km-pointer"
+               fxLayoutAlign=" center"
+               href="/settings/backupdestinations"
+               target="_blank">Configure a destination for this seed <i class="km-icon-external-link"></i>.
+            </a>
+          </mat-hint>
+          }
+          @if (!isAdmin && !hasDestinations()) {
+          <mat-hint>Contact your Administrator to configure a destination.
+          </mat-hint>
+          }
+          @if (hasDestinations()) {
+          <mat-hint>The list of existing destinations for the selected cluster seed.
+          </mat-hint>
+          }
+          @if (form.get(Controls.Destination).hasError('required')) {
+          <mat-error>
+            <strong>Required</strong>
+          </mat-error>
+          }
+        </mat-form-field>
+      </div>
+      }
+
+      @if (this.isLoadingDestinations) {
+      <mat-spinner [diameter]="25" />
+      }
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <km-button icon="km-icon-add"
+               label="Add Snapshot"
+               [disabled]="form.invalid"
+               [observable]="getObservable()"
+               (next)="onNext()" />
+  </mat-dialog-actions>
+</div>

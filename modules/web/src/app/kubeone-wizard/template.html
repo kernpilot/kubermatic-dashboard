@@ -1,0 +1,112 @@
+<!--
+Copyright 2022 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<form [formGroup]="form">
+  <mat-card appearance="outlined"
+            fxFlex="100%">
+    <div fxLayout="row">
+      <mat-card-header class="km-no-padding"
+                       fxLayout="row"
+                       fxLayoutGap="30px">
+        <mat-card-title>
+          <div>Import KubeOne Cluster</div>
+        </mat-card-title>
+      </mat-card-header>
+    </div>
+
+    <mat-horizontal-stepper linear
+                            disableRipple
+                            class="km-transition-none"
+                            #stepper>
+      <ng-template matStepperIcon="edit">
+        <i class="km-icon-done"></i>
+      </ng-template>
+
+      @for (step of steps; track step; let i = $index; let isLast = $last) {
+      <mat-step [stepControl]="form.get(step.name)"
+                fxFlex="100%"
+                class="km-transition-none">
+        <ng-template matStepLabel>{{step.name}}</ng-template>
+        <div id="{{step.id}}-step"
+             class="wizard-step">
+          @switch (step.name) {
+          @case (StepRegistry.Provider) {
+          <km-kubeone-wizard-provider-step [formControl]="form.get(StepRegistry.Provider)" />
+          }
+          @case (StepRegistry.Cluster) {
+          <km-kubeone-wizard-cluster-step [formControl]="form.get(StepRegistry.Cluster)" />
+          }
+          @case (StepRegistry.Credentials) {
+          <km-kubeone-wizard-credentials-step [formControl]="form.get(StepRegistry.Credentials)" />
+          }
+          @case (StepRegistry.Summary) {
+          @if (last) {
+          <km-kubeone-wizard-summary-step />
+          }
+          }
+          }
+        </div>
+        <div class="button-navigation"
+             id="{{step.id}}-nav">
+          <a mat-flat-button
+             type="button"
+             color="tertiary"
+             [routerLink]="['/projects', project?.id, View.KubeOneClusters]">
+            <i class="km-icon-mask km-icon-cancel"
+               matButtonIcon></i>
+            <span>Cancel</span>
+          </a>
+          <div fxFlex></div>
+          @if (creating) {
+          <mat-spinner fxFlexAlign="center"
+                       [diameter]="30"
+                       color="primary" />
+          }
+          @if (!first) {
+          <button mat-flat-button
+                  type="button"
+                  color="tertiary"
+                  matStepperPrevious>
+            <i class="km-icon-mask km-icon-back"
+               matButtonIcon></i>
+            <span>Back</span>
+          </button>
+          }
+          @if (!last) {
+          <button id="km-kubeone-wizard-{{step.id}}-next-btn"
+                  mat-flat-button
+                  type="button"
+                  matStepperNext
+                  [disabled]="invalid">
+            <i class="km-icon-mask km-icon-next"
+               matButtonIcon></i>
+            <span>Next</span>
+          </button>
+          }
+          @if (last && isLast) {
+          <km-button buttonId="km-kubeone-wizard-create-btn"
+                     icon="km-icon-add"
+                     label="Import KubeOne Cluster"
+                     [disabled]="creating"
+                     [observable]="getObservable()"
+                     (next)="onNext($event)" />
+          }
+        </div>
+      </mat-step>
+      }
+    </mat-horizontal-stepper>
+  </mat-card>
+</form>

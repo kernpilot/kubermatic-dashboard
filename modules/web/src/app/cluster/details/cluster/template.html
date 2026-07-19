@@ -1,0 +1,674 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+@if (nodeDc?.spec?.provider === nodeProvider.ANEXIA) {
+<mat-card class="warning-card">
+  <mat-card-content>
+    <div fxLayout="row"
+         fxLayoutAlign=" center">
+      <i class="km-icon-warning"></i>
+      <div>{{ ANEXIA_DEPRECATED_MESSAGE }}</div>
+    </div>
+  </mat-card-content>
+</mat-card>
+}
+
+@if (isLoaded()) {
+<div fxLayout="column">
+  <div fxFlex
+       fxLayoutAlign="start center"
+       class="cluster-detail-actions">
+    <button mat-icon-button
+            color="tertiary"
+            (click)="goBack()"
+            matTooltip="Go back to the cluster list">
+      <i class="km-icon-mask km-icon-arrow-left"></i>
+    </button>
+  </div>
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title fxFlex
+                      fxLayout="row"
+                      fxLayoutAlign=" center"
+                      class="cluster-name">
+        <i [matTooltip]="healthStatus?.message"
+           [ngClass]="healthStatus?.icon"
+           class="cluster-health km-pointer"></i>
+        <span ngxClipboard
+              [cbContent]="cluster.name"
+              matTooltip="Click to copy"
+              class="cluster-name km-copy">{{cluster.name}}</span>
+      </mat-card-title>
+      <div fxFlex></div>
+      <button mat-flat-button
+              type="button"
+              color="alternative"
+              [disabled]="isDeletingState"
+              [matTooltip]="isDeletingState ? clusterDeletionTooltip : ''"
+              (click)="onGetKubeconfig()">
+        <i class="km-icon-mask km-icon-download"
+           matButtonIcon></i>
+        <span>Get Kubeconfig</span>
+      </button>
+      @if (adminSettings.enableDashboard) {
+      <a class="km-open-kubernetes-dashboard-btn"
+         id="km-open-kubernetes-dashboard-btn"
+         [href]="getProxyURL()"
+         target="_blank"
+         rel="noopener noreferrer"
+         mat-flat-button
+         [disabled]="!isKubernetesDashboardHealthy || isDeletingState"
+         [matTooltip]="getOpenDashboardTooltip()">
+        <i class="km-icon-mask km-icon-external-link"
+           matButtonIcon></i>
+        <span>Open Dashboard
+          <i class="km-icon-warning km-pointer km-dashboard-deprecation-warning"
+             [matTooltip]="KUBERNETES_DASHBOARD_DEPRECATED_MESSAGE"></i>
+        </span>
+      </a>
+      }
+      @if (adminSettings.enableOIDCKubeconfig && isWebTerminalEnabled()) {
+      <button mat-flat-button
+              type="button"
+              [disabled]="!isWebTerminalAccessible()"
+              (click)="toggleTerminal()">
+        <i class="km-icon-mask km-icon-terminal"
+           matButtonIcon></i>
+        <span [matTooltip]="getWebTerminalTooltip()">Web Terminal</span>
+      </button>
+      }
+      <div class="provider-menu">
+        <button mat-icon-button
+                color="tertiary"
+                class="provider-menu-btn"
+                [disabled]="!!cluster?.deletionTimestamp"
+                [matMenuTriggerFor]="menu">
+          <i class="km-icon-mask km-icon-points-menu"></i>
+        </button>
+        <mat-menu #menu="matMenu"
+                  class="km-provider-edit-settings">
+          <span [matTooltip]="!isEditEnabled() ? 'This action is not available for viewer role users.' : ''">
+            <button mat-menu-item
+                    [ngClass]="{'remove-hover': !isClusterRunning || !isEditEnabled()}"
+                    (click)="editCluster()"
+                    [disabled]="!isClusterRunning || !isEditEnabled()">
+              <span>Edit Cluster</span>
+            </button>
+          </span>
+          <span [matTooltip]="!isEditEnabled() ? 'This action is not available for viewer role users.' : ''">
+            @if (!cluster.spec.cloud.bringyourown && !cluster.spec.cloud.edge) {
+            <button mat-menu-item
+                    [ngClass]="{'remove-hover': !isClusterRunning || !isEditEnabled()}"
+                    (click)="editProviderSettings()"
+                    [disabled]="!isClusterRunning || !isEditEnabled()">
+              <span>Edit Provider</span>
+            </button>
+            }
+          </span>
+          @if (isUserSshKeyEnabled) {
+          <span [matTooltip]="!isSSHKeysEditEnabled() ? 'This action is not available for viewer role users.' : ''">
+            @if (cluster.spec.enableUserSSHKeyAgent) {
+            <button mat-menu-item
+                    [ngClass]="{'remove-hover': !isClusterRunning || !isSSHKeysEditEnabled()}"
+                    (click)="editSSHKeys()"
+                    [disabled]="!isSSHKeysEditEnabled()">
+              <span>Manage SSH keys</span>
+            </button>
+            }
+          </span>
+          }
+          <span [matTooltip]="!isRevokeTokenEnabled() ? 'This action is not available for viewer role users.' : ''">
+            <button mat-menu-item
+                    [ngClass]="{'remove-hover': !isClusterRunning || !isRevokeTokenEnabled()}"
+                    (click)="revokeToken()"
+                    [disabled]="!isRevokeTokenEnabled()">
+              <span>Revoke Token</span>
+            </button>
+          </span>
+          @if (adminSettings.enableOIDCKubeconfig && adminSettings.enableShareCluster) {
+          <button mat-menu-item
+                  id="km-share-kubeconfig-btn"
+                  (click)="shareConfigDialog(shareKubeconfigDialogMode.Share)">
+            <span>Share Cluster</span>
+          </button>
+          }
+          <mat-divider />
+          <span [matTooltip]="!isDeleteEnabled() ? 'This action is not available for viewer role users.' : ''">
+            <button mat-menu-item
+                    [ngClass]="{'remove-hover': !isClusterRunning || !isDeleteEnabled()}"
+                    id="km-delete-cluster-btn"
+                    (click)="deleteClusterDialog()"
+                    [disabled]="!isDeleteEnabled()">
+              <span>Delete Cluster</span>
+            </button>
+          </span>
+        </mat-menu>
+      </div>
+    </mat-card-header>
+    <mat-card-content class="km-row">
+      <div class="km-content-wrap">
+        <km-version-picker [cluster]="cluster"
+                           [isClusterRunning]="isClusterAPIRunning"
+                           [upgrades]="isEditEnabled() ? upgrades : []" />
+        @if (isHavingCNI()) {
+        <km-cni-version [cluster]="cluster"
+                        [isClusterRunning]="isClusterAPIRunning"
+                        [cniVersions]="cniVersions" />
+        }
+        <km-property>
+          <div key>Cluster ID</div>
+          <div value
+               ngxClipboard
+               [cbContent]="cluster?.id"
+               matTooltip="Click to copy"
+               class="km-copy">
+            {{cluster?.id}}
+          </div>
+        </km-property>
+        <km-property>
+          <div key>Created</div>
+          <div value>
+            <km-relative-time [date]="cluster.creationTimestamp" />
+          </div>
+        </km-property>
+        <km-property>
+          <div key>Seed</div>
+          <div value>{{seed}}</div>
+        </km-property>
+        @if (nodeDc?.spec?.provider !== 'bringyourown') {
+        <km-property>
+          <div key>Region</div>
+          <div value>{{nodeDc?.spec?.country}} ({{nodeDc?.spec?.location}})</div>
+        </km-property>
+        }
+        <km-property>
+          <div key>Provider</div>
+          <div value
+               class="provider-logo-value">
+            <span class="km-provider-logo km-provider-logo-{{getProvider(nodeDc?.spec?.provider)}}"></span>
+          </div>
+        </km-property>
+        <km-property>
+          <div key>Preset</div>
+          <div value>
+            <div>
+              @if (cluster?.annotations?.presetName) {
+              <i [matTooltip]="presetStatus?.message"
+                 [ngClass]="presetStatus?.icon"
+                 class="km-vertical-center"></i>
+              }
+              {{cluster.annotations?.presetName ?? "-"}}
+            </div>
+          </div>
+        </km-property>
+        @if (cluster?.status?.encryption?.phase) {
+        <km-property>
+          <div key>Encryption at Rest</div>
+          <div value>
+            <div fxLayoutAlign=" center">
+              @if (encryptionStatus) {
+              <i [matTooltip]="encryptionStatus?.message"
+                 [ngClass]="encryptionStatus?.icon"
+                 class="km-vertical-center"></i>
+              }
+              {{cluster.status.encryption.phase}}
+            </div>
+          </div>
+        </km-property>
+        }
+        @if (cluster.spec.containerRuntime) {
+        <km-property>
+          <div key>Container Runtime</div>
+          <div value>{{cluster.spec.containerRuntime}}</div>
+        </km-property>
+        }
+        @if (isUserSshKeyEnabled) {
+        <km-property>
+          <div key>SSH Keys</div>
+          <div value>
+            <km-ssh-key-list [sshKeys]="sshKeys" />
+          </div>
+        </km-property>
+        }
+        @if (metrics?.nodes?.cpuTotalMillicores) {
+        <km-property-usage name="Nodes CPU Usage"
+                           unit="millicores"
+                           [used]="metrics?.nodes?.cpuTotalMillicores"
+                           [total]="metrics?.nodes?.cpuAvailableMillicores" />
+        }
+        @if (metrics?.nodes?.memoryTotalBytes) {
+        <km-property-usage name="Nodes Memory Usage"
+                           unit="MiB"
+                           [used]="metrics?.nodes?.memoryTotalBytes"
+                           [total]="metrics?.nodes?.memoryAvailableBytes" />
+        }
+        @if (metrics?.controlPlane?.cpuTotalMillicores) {
+        <km-property-usage name="Control Plane CPU Usage"
+                           unit="millicores"
+                           [used]="metrics?.controlPlane?.cpuTotalMillicores" />
+        }
+        @if (metrics?.controlPlane?.memoryTotalBytes) {
+        <km-property-usage name="Control Plane Memory Usage"
+                           unit="MiB"
+                           [used]="metrics?.controlPlane?.memoryTotalBytes" />
+        }
+      </div>
+      <km-expansion-panel expandLabel="ADDITIONAL CLUSTER INFORMATION"
+                          collapseLabel="ADDITIONAL CLUSTER INFORMATION"
+                          [expanded]="onExpandChange$ | async">
+        <div fxLayout="row wrap"
+             class="cluster-info-container">
+          <div fxFlex="33"
+               class="container-spacing">
+            <div class="section-header">Control Plane</div>
+            <km-property-health label="API Server"
+                                [healthState]="health?.apiserver" />
+            <km-property-health label="etcd"
+                                [healthState]="health?.etcd" />
+            <km-property-health label="Scheduler"
+                                [healthState]="health?.scheduler" />
+            <km-property-health label="Controller"
+                                [healthState]="health?.controller" />
+            @if (!cluster.spec.cloud.edge) {
+            <km-property-health label="Machine Controller"
+                                [healthState]="health?.machineController" />
+            }
+            <km-property-health label="Operating System Manager"
+                                [healthState]="health?.operatingSystemManager" />
+            <km-property-health label="User Controller Manager"
+                                [healthState]="health?.userClusterControllerManager" />
+            @if (cluster.spec.kubernetesDashboard?.enabled) {
+            <km-property-health label="Kubernetes Dashboard"
+                                [healthState]="health?.kubernetesDashboard" />
+            }
+            @if (isEnterpriseEdition && cluster.spec.kubelb?.enabled) {
+            <km-property-health label="Kubermatic KubeLB"
+                                [healthState]="health?.kubelb" />
+            }
+            @if (isEnterpriseEdition && cluster.spec.kyverno?.enabled) {
+            <km-property-health label="Kyverno"
+                                [healthState]="health?.kyverno" />
+            }
+          </div>
+          <div fxFlex="33"
+               class="container-spacing">
+            <div fxFlex="100"
+                 fxLayout="column">
+              <div class="section-header">Networking</div>
+              @if (cluster.spec.clusterNetwork?.proxyMode) {
+              <km-property>
+                <div key>Proxy Mode</div>
+                <div value>{{cluster.spec.clusterNetwork.proxyMode}}</div>
+              </km-property>
+              }
+              @if (cluster.spec.exposeStrategy) {
+              <km-property>
+                <div key>Expose Strategy</div>
+                <div value>{{cluster.spec.exposeStrategy}}</div>
+              </km-property>
+              }
+              @if (cluster.spec.apiServerAllowedIPRanges?.cidrBlocks?.length) {
+              <km-property>
+                <div key>Allowed IP Ranges for API server</div>
+                <div value>
+                  <km-labels [labels]="cluster.spec.apiServerAllowedIPRanges.cidrBlocks" />
+                </div>
+              </km-property>
+              }
+              <div fxFlex="100"
+                   fxLayout="column"
+                   fxLayout.gt-lg="row"
+                   fxLayoutGap="10px"
+                   fxLayoutGap.gt-lg="50px">
+                <div fxLayout="column"
+                     fxFlex="100"
+                     [fxFlex.gt-lg]="isDualStackNetworkSelected ? '30' : '100'">
+                  @if (isDualStackNetworkSelected) {
+                  <h4>IPv4</h4>
+                  }
+                  @if (cluster.spec.clusterNetwork?.pods?.cidrBlocks?.length) {
+                  <km-property>
+                    <div key>Pods CIDR</div>
+                    <div value>{{cluster.spec.clusterNetwork.pods.cidrBlocks[0]}}</div>
+                  </km-property>
+                  }
+                  @if (cluster.spec.clusterNetwork?.services?.cidrBlocks?.length) {
+                  <km-property>
+                    <div key>Services CIDR</div>
+                    <div value>{{cluster.spec.clusterNetwork.services.cidrBlocks[0]}}</div>
+                  </km-property>
+                  }
+                  @if (cluster.spec.clusterNetwork?.nodeCidrMaskSizeIPv4) {
+                  <km-property>
+                    <div key>Node CIDR Mask Size</div>
+                    <div value>{{cluster.spec.clusterNetwork.nodeCidrMaskSizeIPv4}}</div>
+                  </km-property>
+                  }
+                </div>
+                @if (isDualStackNetworkSelected) {
+                <div fxLayout="column"
+                     fxFlex="100"
+                     fxFlex.gt-lg="70">
+                  <h4>IPv6</h4>
+                  @if (cluster.spec.clusterNetwork?.pods?.cidrBlocks?.length > 1) {
+                  <km-property>
+                    <div key>Pods CIDR</div>
+                    <div value>{{cluster.spec.clusterNetwork.pods.cidrBlocks[1]}}</div>
+                  </km-property>
+                  }
+                  @if (cluster.spec.clusterNetwork?.services?.cidrBlocks?.length > 1) {
+                  <km-property>
+                    <div key>Services CIDR</div>
+                    <div value>{{cluster.spec.clusterNetwork.services.cidrBlocks[1]}}</div>
+                  </km-property>
+                  }
+                  @if (cluster.spec.clusterNetwork?.nodeCidrMaskSizeIPv6) {
+                  <km-property>
+                    <div key>Node CIDR Mask Size</div>
+                    <div value>{{cluster.spec.clusterNetwork.nodeCidrMaskSizeIPv6}}</div>
+                  </km-property>
+                  }
+                </div>
+                }
+              </div>
+              <km-property-boolean label="Node Local DNS Cache"
+                                   [value]="cluster.spec.clusterNetwork?.nodeLocalDNSCacheEnabled" />
+              <km-property-boolean label="Konnectivity"
+                                   matTooltip="Konnectivity is a TCP level proxy service for control plane to cluster communication."
+                                   [value]="cluster.spec.clusterNetwork?.konnectivityEnabled" />
+            </div>
+          </div>
+          <div fxFlex="33"
+               class="container-spacing">
+            <div fxLayout="row"
+                 fxLayoutAlign=" center"
+                 class="section-header">
+              <span>OPA</span>
+              @if (cluster?.spec?.opaIntegration?.enabled) {
+              <i class="km-icon-warning km-pointer km-opa-deprecation-warning"
+                 [matTooltip]="OPA_DEPRECATED_MESSAGE"></i>
+              }
+            </div>
+            @if (!cluster?.spec?.opaIntegration?.enabled) {
+            <km-property-boolean label="Policy Control"
+                                 [value]="cluster?.spec?.opaIntegration?.enabled" />
+            }
+            @if (cluster?.spec?.opaIntegration?.enabled) {
+            <km-property-health label="Gatekeeper Controller"
+                                [healthState]="health?.gatekeeperController" />
+            }
+            @if (cluster?.spec?.opaIntegration?.enabled) {
+            <km-property-health label="Gatekeeper Audit"
+                                [healthState]="health?.gatekeeperAudit" />
+            }
+          </div>
+          @if (isMLAEnabledInSeed()) {
+          <div fxFlex="33"
+               class="container-spacing">
+            <div class="section-header">MLA</div>
+            @if (!cluster?.spec?.mla?.monitoringEnabled) {
+            <km-property-boolean label="User Cluster Monitoring"
+                                 [value]="cluster?.spec?.mla?.monitoringEnabled" />
+            }
+            @if (!cluster?.spec?.mla?.loggingEnabled) {
+            <km-property-boolean label="User Cluster Logging"
+                                 [value]="cluster?.spec?.mla?.loggingEnabled" />
+            }
+            @if (cluster?.spec?.mla?.monitoringEnabled) {
+            <km-property-health label="Monitoring"
+                                [healthState]="health?.monitoring" />
+            }
+            @if (cluster?.spec?.mla?.loggingEnabled) {
+            <km-property-health label="Logging"
+                                [healthState]="health?.logging" />
+            }
+            @if (cluster?.spec?.mla?.loggingEnabled || cluster?.spec?.mla?.monitoringEnabled) {
+            <km-property-health label="Alertmanager Config"
+                                [healthState]="health?.alertmanagerConfig" />
+            }
+            @if (cluster?.spec?.mla?.loggingEnabled || cluster?.spec?.mla?.monitoringEnabled) {
+            <km-property-health label="Gateway"
+                                [healthState]="health?.mlaGateway" />
+            }
+          </div>
+          }
+          <div fxFlex="33"
+               class="container-spacing">
+            <div class="section-header">Admission Plugins</div>
+            @for (plugin of admissionPlugins; track plugin) {
+            <km-property-boolean [label]="getAdmissionPluginName(plugin)"
+                                 [value]="isAdmissionPluginEnabled(plugin)" />
+            }
+            @if (eventRateLimitTypes?.length) {
+            <km-property>
+              <div key>Event Rate Limit Config</div>
+              @for (event of eventRateLimitTypes; track event) {
+              <div value
+                   fxLayout="row wrap"
+                   fxLayoutGap="10px"
+                   class="event-type">
+                <div><span class="km-text-muted">Limit Type:</span> {{event}}</div>
+                <div><span class="km-text-muted">QPS:</span> {{cluster.spec.eventRateLimitConfig[event].qps}}</div>
+                <div>
+                  <span class="km-text-muted">Burst:</span> {{cluster.spec.eventRateLimitConfig[event].burst}}
+                </div>
+                <div>
+                  <span class="km-text-muted">Cache Size:</span>
+                  {{cluster.spec.eventRateLimitConfig[event].cacheSize}}
+                </div>
+              </div>
+              }
+            </km-property>
+            }
+            @if (cluster?.spec?.podNodeSelectorAdmissionPluginConfig) {
+            <km-property>
+              <div key>Pod Node Selector Config</div>
+              <div value>
+                <km-labels [labels]="cluster?.spec?.podNodeSelectorAdmissionPluginConfig"
+                           emptyMessage="No assigned labels" />
+              </div>
+            </km-property>
+            }
+          </div>
+          <div fxFlex="33"
+               class="container-spacing">
+            <div class="section-header">Misc</div>
+            <div fxLayout="row">
+              <km-property-boolean label="Audit Logging"
+                                   [value]="cluster.spec.auditLogging?.enabled" />
+              @if (cluster.spec.auditLogging?.enabled) {
+              <span class="km-label-primary secondary">{{cluster.spec.auditLogging.policyPreset || 'custom'}}</span>
+              }
+            </div>
+            @if (cluster?.spec?.cloud?.azure) {
+            <km-property-boolean label="Assign Availability Set"
+                                 [value]="cluster.spec.cloud.azure.assignAvailabilitySet" />
+            }
+            <km-property-boolean label="User SSH Key Agent"
+                                 [value]="cluster.spec.enableUserSSHKeyAgent" />
+            @if (cluster.spec.kubelb?.enabled) {
+            <km-property-boolean label="Kubermatic KubeLB"
+                                 [value]="cluster.spec.kubelb?.enabled" />
+            }
+            @if (cluster.spec.kubelb?.enabled && cluster.spec.kubelb?.useLoadBalancerClass) {
+            <km-property-boolean label="KubeLB: Use LoadBalancer Class"
+                                 [value]="cluster.spec.kubelb?.useLoadBalancerClass" />
+            }
+            @if (cluster.spec.kubelb?.enabled && cluster.spec.kubelb?.enableGatewayAPI) {
+            <km-property-boolean label="KubeLB: Enable Gateway API"
+                                 [value]="cluster.spec.kubelb?.enableGatewayAPI" />
+            }
+            <km-property-boolean [label]="cluster.spec.disableCsiDriver ? 'External CCM' : 'External CCM/CSI'"
+                                 [value]="cluster.status.externalCCMMigration === externalCCMMigrationStatus.NotNeeded" />
+            @if (cluster.spec.disableCsiDriver) {
+            <km-property-boolean label="CSI Storage Driver"
+                                 [value]="!cluster.spec.disableCsiDriver" />
+            }
+            @if (cluster?.status?.externalCCMMigration) {
+            <km-property>
+              <div key>External CCM/CSI migration</div>
+              <div value
+                   fxLayoutAlign=" center"
+                   fxLayoutGap="4px"
+                   (click)="startExternalCCMMigration()"
+                   [ngClass]="{'km-pointer km-alternative-hover': cluster.status.externalCCMMigration === externalCCMMigrationStatus.Supported}"
+                   [matTooltip]="getExternalCCMMigrationStatusMessage()">
+                @if (cluster.status.externalCCMMigration === externalCCMMigrationStatus.Supported) {
+                <i class="km-icon-update-available"></i>
+                }
+                @if (cluster.status.externalCCMMigration === externalCCMMigrationStatus.InProgress) {
+                <i class="km-icon-pending km-info"></i>
+                }
+                <span>{{getExternalCCMMigrationStatus()}}</span>
+              </div>
+            </km-property>
+            }
+            @if (cluster.labels) {
+            <km-property>
+              <div key>Labels</div>
+              <div value>
+                <km-labels [labels]="cluster.labels"
+                           emptyMessage="No assigned labels" />
+              </div>
+            </km-property>
+            }
+            @if (cluster.annotations) {
+            <km-property>
+              <div key>Annotations</div>
+              <div value>
+                <km-labels [labels]="getFilteredAnnotations(cluster.annotations)" />
+              </div>
+            </km-property>
+            }
+          </div>
+        </div>
+      </km-expansion-panel>
+    </mat-card-content>
+  </mat-card>
+  <km-machine-networks-display [cluster]="cluster"
+                               [projectID]="projectID"
+                               [isClusterRunning]="isClusterRunning" />
+  <km-machine-deployment-list [cluster]="cluster"
+                              [machineDeployments]="machineDeployments"
+                              [projectID]="projectID"
+                              [isClusterRunning]="isClusterRunning"
+                              [nodeDc]="nodeDc"
+                              [quotaWidget]="quotaWidget"
+                              [isInitialized]="areMachineDeploymentsInitialized" />
+  @if (nodes.length > 0) {
+  <div>
+    <km-node-list [cluster]="cluster"
+                  [nodes]="nodes"
+                  [projectID]="projectID" />
+  </div>
+  }
+  <km-tab-card id="km-cluster-details-tab-card">
+    <km-tab label="Events">
+      <km-event-list [events]="events" />
+    </km-tab>
+    @if (isRBACEnabled()) {
+    <km-tab label="RBAC">
+      <km-rbac [cluster]="cluster"
+               [projectID]="projectID"
+               [isClusterRunning]="isClusterRunning" />
+    </km-tab>
+    }
+    <km-tab label="Addons">
+      <div class="addon-tab-content">
+        <km-addon-list [addons]="addons"
+                       [cluster]="cluster"
+                       [isClusterReady]="isClusterRunning"
+                       [canEdit]="isEditEnabled()"
+                       (addAddon)="handleAddonCreation($event)"
+                       (editAddon)="handleAddonEdition($event)"
+                       (deleteAddon)="handleAddonDeletion($event)" />
+      </div>
+    </km-tab>
+    <km-tab label="Applications">
+      <div class="application-tab-content">
+        <km-application-list [applications]="applications"
+                             [cluster]="cluster"
+                             [projectID]="projectID"
+                             [isClusterReady]="isClusterRunning"
+                             [canEdit]="isEditEnabled()"
+                             (addApplication)="onApplicationAdded($event)"
+                             (editApplication)="onApplicationUpdated($event)"
+                             (deleteApplication)="onApplicationDeleted($event)" />
+      </div>
+    </km-tab>
+    @if (cluster.spec.opaIntegration?.enabled) {
+    <km-tab label="OPA Constraints">
+      <ng-template #tabLabel>
+        OPA Constraints
+        <i class="km-icon-warning km-pointer-warning km-opa-warning"
+           [matTooltip]="OPA_DEPRECATED_MESSAGE"></i>
+      </ng-template>
+      <km-constraint-list [constraints]="constraints"
+                          [cluster]="cluster"
+                          [projectID]="projectID"
+                          [isClusterRunning]="isClusterRunning && isOPARunning" />
+    </km-tab>
+    }
+    @if (cluster.spec.opaIntegration?.enabled) {
+    <km-tab label="OPA Gatekeeper Config">
+      <ng-template #tabLabel>
+        OPA Gatekeeper Config
+        <i class="km-icon-warning km-pointer km-opa-warning"
+           [matTooltip]="OPA_DEPRECATED_MESSAGE"></i>
+      </ng-template>
+      <km-gatekeeper-config [gatekeeperConfig]="gatekeeperConfig"
+                            [cluster]="cluster"
+                            [projectID]="projectID"
+                            [isClusterRunning]="isClusterRunning && isOPARunning" />
+    </km-tab>
+    }
+    @if (isEnterpriseEdition && cluster.spec.kyverno?.enabled) {
+    <km-tab label="Kyverno Policies">
+      <km-kyverno-cluster-policies-list [projectID]="projectID"
+                                        [cluster]="cluster"
+                                        [isClusterRunning]="isClusterRunning && isKyvernoHealthy" />
+    </km-tab>
+    }
+    @if (isMLAEnabled()) {
+    <km-tab label="Monitoring, Logging & Alerting">
+      <km-mla [alertmanagerConfig]="alertmanagerConfig"
+              [ruleGroups]="ruleGroups"
+              [cluster]="cluster"
+              [projectID]="projectID"
+              [isClusterRunning]="isClusterRunning"
+              [addons]="addons" />
+    </km-tab>
+    }
+  </km-tab-card>
+</div>
+}
+
+@if (!isLoaded()) {
+<div>
+  <mat-spinner [diameter]="25"
+               color="accent"
+               class="km-spinner" />
+</div>
+}
+
+<ng-template #quotaWidget>
+  <router-outlet name="quota-widget"
+                 (activate)="onActivate($event)" />
+</ng-template>
+
+@if (showTerminal) {
+<km-overlay-terminal (close)="toggleTerminal()" />
+}

@@ -1,0 +1,199 @@
+/*
+Copyright 2022 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package applicationdefinition
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/go-kit/kit/endpoint"
+
+	apiv2 "k8c.io/dashboard/v2/pkg/api/v2"
+	"k8c.io/dashboard/v2/pkg/handler/v1/common"
+	"k8c.io/dashboard/v2/pkg/provider"
+	utilerrors "k8c.io/kubermatic/v2/pkg/util/errors"
+)
+
+func ListApplicationDefinitions(applicationDefinitionProvider provider.ApplicationDefinitionProvider) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		defList, err := applicationDefinitionProvider.ListUnsecured(ctx)
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+
+		definitions := make([]*apiv2.ApplicationDefinitionListItem, len(defList.Items))
+		for i := range defList.Items {
+			definitions[i] = convertInternalToAPIApplicationDefinitionForList(&defList.Items[i])
+		}
+
+		return definitions, nil
+	}
+}
+
+func GetApplicationDefinition(applicationDefinitionProvider provider.ApplicationDefinitionProvider) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req, ok := request.(getApplicationDefinitionReq)
+		if !ok {
+			return nil, utilerrors.NewBadRequest("invalid request")
+		}
+
+		appdef, err := applicationDefinitionProvider.GetUnsecured(ctx, req.AppDefName)
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+
+		return convertInternalToAPIApplicationDefinition(appdef), nil
+	}
+}
+
+func CreateApplicationDefinition(userInfoGetter provider.UserInfoGetter, applicationDefinitionProvider provider.ApplicationDefinitionProvider) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		userInfo, err := userInfoGetter(ctx, "")
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+		if !userInfo.IsAdmin {
+			return nil, utilerrors.New(http.StatusForbidden, fmt.Sprintf("forbidden: \"%s\" doesn't have admin rights", userInfo.Email))
+		}
+
+		req, ok := request.(createApplicationDefinitionReq)
+		if !ok {
+			return nil, utilerrors.NewBadRequest("invalid request")
+		}
+
+		inApp := convertAPItoInternalApplicationDefinitionBody(&req.Body)
+		appdef, err := applicationDefinitionProvider.CreateUnsecured(ctx, inApp)
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+		return appdef, nil
+	}
+}
+
+func UpdateApplicationDefinition(userInfoGetter provider.UserInfoGetter, applicationDefinitionProvider provider.ApplicationDefinitionProvider) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		userInfo, err := userInfoGetter(ctx, "")
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+		if !userInfo.IsAdmin {
+			return nil, utilerrors.New(http.StatusForbidden, fmt.Sprintf("forbidden: \"%s\" doesn't have admin rights", userInfo.Email))
+		}
+
+		req, ok := request.(updateApplicationDefinitionReq)
+		if !ok {
+			return nil, utilerrors.NewBadRequest("invalid request")
+		}
+
+		curAppDef, err := applicationDefinitionProvider.GetUnsecured(ctx, req.AppDefName)
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+
+		reqAppDef := convertAPItoInternalApplicationDefinitionBody(&req.Body)
+		curAppDef.Spec = reqAppDef.Spec
+		resAppDef, err := applicationDefinitionProvider.UpdateUnsecured(ctx, curAppDef)
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+
+		return convertInternalToAPIApplicationDefinition(resAppDef), nil
+	}
+}
+
+func PatchApplicationDefinition(userInfoGetter provider.UserInfoGetter, applicationDefinitionProvider provider.ApplicationDefinitionProvider) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(patchApplicationDefinitionReq)
+		if err := req.Validate(); err != nil {
+			return nil, utilerrors.NewBadRequest("%v", err)
+		}
+
+		adminUserInfo, err := userInfoGetter(ctx, "")
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+		if !adminUserInfo.IsAdmin {
+			return nil, utilerrors.New(http.StatusForbidden,
+				fmt.Sprintf("forbidden: \"%s\" doesn't have admin rights", adminUserInfo.Email))
+		}
+
+		original, err := applicationDefinitionProvider.GetUnsecured(ctx, req.AppDefName)
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+
+		originalJSON, err := json.Marshal(convertInternalToAPIApplicationDefinition(original))
+		if err != nil {
+			return nil, utilerrors.New(http.StatusInternalServerError, fmt.Sprintf("failed to convert existing application definition: %v", err))
+		}
+
+		patchedJSON, err := jsonpatch.MergePatch(originalJSON, req.Patch)
+		if err != nil {
+			return nil, utilerrors.New(http.StatusBadRequest, fmt.Sprintf("failed to merge patch application definition: %v", err))
+		}
+
+		var patched *apiv2.ApplicationDefinition
+		err = json.Unmarshal(patchedJSON, &patched)
+		if err != nil {
+			return nil, utilerrors.New(http.StatusInternalServerError, fmt.Sprintf("failed to unmarshal patch application definition: %v", err))
+		}
+
+		// validate
+		if patched.Name != original.Name {
+			return nil, utilerrors.New(http.StatusBadRequest, fmt.Sprintf("Changing application definition name is not allowed: %q to %q", original.Name, patched.Name))
+		}
+
+		patchedAD := original.DeepCopy()
+		patchedAD.Annotations = patched.Annotations
+		patchedAD.Labels = patched.Labels
+		patchedAD.Spec = *patched.Spec
+		patchedAD.ResourceVersion = original.ResourceVersion
+
+		err = applicationDefinitionProvider.PatchUnsecured(ctx, original, patchedAD)
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+		return convertInternalToAPIApplicationDefinition(patchedAD), nil
+	}
+}
+
+func DeleteApplicationDefinition(userInfoGetter provider.UserInfoGetter, applicationDefinitionProvider provider.ApplicationDefinitionProvider) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		userInfo, err := userInfoGetter(ctx, "")
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+		if !userInfo.IsAdmin {
+			return nil, utilerrors.New(http.StatusForbidden, fmt.Sprintf("forbidden: \"%s\" doesn't have admin rights", userInfo.Email))
+		}
+
+		req, ok := request.(deleteApplicationDefinitionReq)
+		if !ok {
+			return nil, utilerrors.NewBadRequest("invalid request")
+		}
+
+		err = applicationDefinitionProvider.DeleteUnsecured(ctx, req.AppDefName)
+		if err != nil {
+			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+
+		return nil, nil
+	}
+}

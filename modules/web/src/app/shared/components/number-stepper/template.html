@@ -1,0 +1,79 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<mat-form-field class="km-number-stepper-input"
+                [ngClass]="{'message': mode === 'hint' || mode === 'errors' || mode === 'all', 'force-min-width': forceFormFieldMinWidth}">
+  @if (!!label) {
+  <mat-label>{{label}}</mat-label>
+  }
+  <input #input="ngModel"
+         matInput
+         type="number"
+         autocomplete="off"
+         onkeydown="return event.keyCode !== 69"
+         [pattern]="pattern"
+         [disabled]="disabled"
+         [required]="required"
+         [(ngModel)]="value"
+         [min]="min"
+         [max]="max"
+         [id]="id"
+         (blur)="onTouch()"
+         [attr.cdkFocusInitial]="focus ? focus : null"
+         kmValueChangedIndicator
+         [ValueChangedIndicator]="enableKmValueChangedIndicator">
+  @for (message of errors; track message) {
+  <mat-error>{{message}}</mat-error>
+  }
+  @if ((mode === 'hint' || mode === 'all') && !!hint) {
+  <mat-hint>{{hint}}</mat-hint>
+  }
+</mat-form-field>
+@if (!verticalButton) {
+<button mat-icon-button
+        class="stepper-button left"
+        [disabled]="disabled"
+        (click)="onDecrease()">
+  −
+</button>
+<button mat-icon-button
+        class="stepper-button right"
+        [disabled]="disabled"
+        (click)="onIncrease()">
+  +
+</button>
+
+} @else {
+<div fxLayout="column"
+     fxLayoutAlign="start center"
+     class="vertical-stepper-wrapper">
+
+  <button mat-icon-button
+          fxFlex="50"
+          class="stepper-button vertical-top"
+          [disabled]="disabled"
+          (click)="onIncrease()">
+    +
+  </button>
+
+  <button mat-icon-button
+          fxFlex="50"
+          class="stepper-button vertical-bottom"
+          [disabled]="disabled"
+          (click)="onDecrease()">
+    −
+  </button>
+</div>
+}

@@ -1,0 +1,164 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div fxLayout="column"
+     fxLayoutGap="20px">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Project Overview</mat-card-title>
+      <button mat-icon-button
+              color="tertiary"
+              class="edit-button"
+              (click)="editProject()"
+              [disabled]="!isEditEnabled()">
+        <i class="km-icon-mask km-icon-edit"></i>
+      </button>
+      @if (project) {
+      <km-create-resource-panel [project]="project"
+                                [clusterTemplates]="clusterTemplates"
+                                (refreshClusters)="clustersChange.next()"
+                                (refreshExternalClusters)="externalClustersChange.next()"
+                                (refreshClusterTemplates)="clusterTemplatesChange.next()"
+                                (refreshBackups)="backupsChange.next()" />
+      }
+    </mat-card-header>
+
+    <mat-card-content fxLayout="row wrap"
+                      fxLayoutAlign="space-between center"
+                      fxLayoutGap="10px grid">
+      <div fxLayoutAlign=" center"
+           fxLayoutGap="15px"
+           fxFlex="auto">
+        <i class="km-icon-mask km-icon-projects-card"></i>
+        <km-property>
+          <div key>Project</div>
+          <div value>{{project?.name}}</div>
+        </km-property>
+      </div>
+
+      <div fxLayout="row wrap">
+        <div fxLayoutAlign=" center"
+             fxLayoutGap="15px"
+             fxFlex>
+          <i class="km-icon-mask km-icon-cluster"></i>
+          <km-property>
+            <div key>Clusters</div>
+            <div value>{{clusters.length}}</div>
+          </km-property>
+        </div>
+        <div fxLayoutAlign=" center"
+             fxLayoutGap="15px"
+             fxFlex>
+          <i class="km-icon-mask km-icon-cluster"></i>
+          <km-property>
+            <div key>External&nbsp;Clusters</div>
+            <div value>{{externalClusters.length}}</div>
+          </km-property>
+        </div>
+        <div fxLayoutAlign=" center"
+             fxLayoutGap="15px"
+             fxFlex>
+          <i class="km-icon-mask km-icon-cluster-template"></i>
+          <km-property>
+            <div key>Cluster&nbsp;Templates</div>
+            <div value>{{clusterTemplates.length}}</div>
+          </km-property>
+        </div>
+        @if (etcdBackupEnabled) {
+        <div fxLayoutAlign=" center"
+             fxLayoutGap="15px"
+             fxFlex>
+          <i class="km-icon-mask km-icon-backup"></i>
+          <km-property>
+            <div key>Backups</div>
+            <div value>{{backups.length}}</div>
+          </km-property>
+        </div>
+        }
+        @if (isUserSshKeyEnabled) {
+        <div fxLayoutAlign=" center"
+             fxLayoutGap="15px"
+             fxFlex>
+          <i class="km-icon-mask km-icon-key"></i>
+          <km-property>
+            <div key>SSH&nbsp;Keys</div>
+            <div value>{{sshKeys.length}}</div>
+          </km-property>
+        </div>
+        }
+        <div fxLayoutAlign=" center"
+             fxLayoutGap="15px"
+             fxFlex>
+          <i class="km-icon-mask km-icon-serviceaccount"></i>
+          <km-property>
+            <div key>Service&nbsp;Accounts</div>
+            <div value>{{serviceAccounts.length}}</div>
+          </km-property>
+        </div>
+      </div>
+      @if (project?.labels) {
+      <div fxLayoutAlign=" start"
+           fxLayoutGap="15px">
+        <i class="km-icon-mask km-icon-labels labels-icon"></i>
+        <km-property>
+          <div key>Labels</div>
+          <div value>
+            <km-labels [oneLineLimit]="true"
+                       [labels]="project?.labels" />
+          </div>
+        </km-property>
+      </div>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <div fxLayout="row"
+       fxLayoutGap="20px">
+    <div fxLayout="column"
+         fxLayoutGap="20px"
+         fxFlex="50">
+      <km-clusters-overview [project]="project"
+                            [clusters]="clusters"
+                            [clusterHealth]="clusterHealth"
+                            [clusterMachinesCount]="clusterMachinesCount"
+                            [isLoadingClusters]="isLoadingClusters"
+                            [externalClusters]="externalClusters"
+                            [externalClustersEnabled]="externalClustersEnabled"
+                            [isLoadingExternalClusters]="isLoadingExternalClusters" />
+    </div>
+    <div fxLayout="column"
+         fxLayoutGap="20px"
+         fxFlex="50">
+      @if (isEnterpriseEdition && projectQuota) {
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Project Quota</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <router-outlet name="quota-widget"
+                         (activate)="onActivate($event)" />
+        </mat-card-content>
+      </mat-card>
+      }
+      <km-providers-overview [clusters]="clusters"
+                             [externalClusters]="externalClusters" />
+      <km-members-overview [project]="project"
+                           [members]="members"
+                           [groups]="groups"
+                           [showMembersAndGroups]="hasPermission(View.Members)" />
+    </div>
+  </div>
+</div>

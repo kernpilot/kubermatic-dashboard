@@ -1,0 +1,10 @@
+{
+  "mla": {
+    "userClusterMLAEnabled": true
+  },
+  "metering": {
+    "enabled": true,
+    "storageClassName": "standard",
+    "storageSize": "75Gi"
+  }
+}

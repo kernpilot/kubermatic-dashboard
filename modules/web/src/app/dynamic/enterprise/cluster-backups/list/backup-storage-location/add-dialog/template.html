@@ -1,0 +1,153 @@
+<!--
+               Kubermatic Enterprise Read-Only License
+                      Version 1.0 ("KERO-1.0”)
+                  Copyright © 2024 Kubermatic GmbH
+
+1. You may only view, read and display for studying purposes the source
+   code of the software licensed under this license, and, to the extent
+   explicitly provided under this license, the binary code.
+2. Any use of the software which exceeds the foregoing right, including,
+   without limitation, its execution, compilation, copying, modification
+   and distribution, is expressly prohibited.
+3. THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+END OF TERMS AND CONDITIONS
+-->
+
+<km-dialog-title>{{title}}</km-dialog-title>
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <mat-form-field>
+      <mat-label>Name</mat-label>
+      <input [formControlName]="Controls.Name"
+             matInput
+             required>
+      <mat-hint>The name of the created backup storage location.</mat-hint>
+      @if (form.get(Controls.Name).hasError('required')) {
+      <mat-error>
+        <strong>Required</strong>
+      </mat-error>
+      }
+      @if (form.get(Controls.Name).hasError('pattern')) {
+      <mat-error>
+        Name can only contain alphanumeric characters and dashes (a-z, 0-9 and -). Must not start/end with dash.
+      </mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Bucket</mat-label>
+      <input [formControlName]="Controls.Bucket"
+             matInput
+             required>
+      <mat-hint>The bucket in which to store backups.</mat-hint>
+      @if (form.get(Controls.Name).hasError('required')) {
+      <mat-error>
+        <strong>Required</strong>
+      </mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Prefix</mat-label>
+      <input [formControlName]="Controls.Prefix"
+             matInput>
+      <mat-hint>Prefix is the path inside a bucket to use for backup storage.</mat-hint>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>CA Certificate</mat-label>
+      <input [formControlName]="Controls.CaCert"
+             matInput>
+      <mat-hint>base64 encoded CA bundle to be used when verifying TLS connections</mat-hint>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Access Key ID</mat-label>
+      <input [formControlName]="Controls.AccessKeyId"
+             matInput
+             kmInputPassword>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Secret Access Key</mat-label>
+      <input [formControlName]="Controls.SecretAccessKey"
+             matInput
+             kmInputPassword>
+    </mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>Backup Sync Period</mat-label>
+      <input [formControlName]="Controls.BackupSyncPeriod"
+             matInput>
+      <mat-hint>Enter time in the format MMmSSs (e.g., 2m10s),BackupSyncPeriod defines how frequently to sync backup API objects from object storage. A value of 0 disables sync.</mat-hint>
+      @if (form.get(Controls.BackupSyncPeriod).hasError('pattern')) {
+      <mat-error>
+        Time must be in the format MMmSSs (e.g., 2m10s).
+      </mat-error>
+      }
+    </mat-form-field>
+    <mat-checkbox [formControlName]="Controls.AddCustomConfig">Add custom config
+    </mat-checkbox>
+    @if (form.get(Controls.AddCustomConfig).value) {
+    <km-editor [(model)]="valuesConfig"
+               height="370px"
+               header="values.yaml" />
+    <km-validate-json-or-yaml [data]="valuesConfig"
+                              [isOnlyYAML]="true"
+                              (dataValid)="isValidYaml($event)" />
+    }
+    @if (!form.get(Controls.AddCustomConfig).value) {
+    <mat-form-field class="region-field">
+      <mat-label>Region</mat-label>
+      <input [formControlName]="Controls.Region"
+             matInput>
+      <mat-hint>The AWS region where the bucket is located.</mat-hint>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Endpoints</mat-label>
+      <input [formControlName]="Controls.Endpoints"
+             matInput>
+      <mat-hint>Specify the AWS S3 URL here.</mat-hint>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Default Checksum Algorithm</mat-label>
+      <mat-select class="km-select-ellipsis"
+                  [formControlName]="Controls.ChecksumAlgorithm"
+                  disableOptionCentering>
+        @for (algorithm of veleroChecksumAlgorithms; track algorithm) {
+        <mat-option [value]="algorithm"> {{algorithm}} </mat-option>
+        }
+        <mat-select-trigger fxFlex
+                            fxLayout="row"
+                            fxLayoutAlign=" center">
+          <div fxFlex
+               fxLayoutAlign="start">
+            {{form.get(Controls.ChecksumAlgorithm).value}}
+          </div>
+          <div fxFlex
+               fxLayoutAlign="end"
+               class="km-select-trigger-button-wrapper">
+            @if (form.get(Controls.ChecksumAlgorithm).value) {
+            <button (click)="form.get(Controls.ChecksumAlgorithm).setValue(''); $event.stopPropagation()"
+                    matSuffix
+                    mat-icon-button
+                    aria-label="Clear">
+              <i class="km-icon-mask km-icon-remove"></i>
+            </button>
+            }
+          </div>
+        </mat-select-trigger>
+      </mat-select>
+      <mat-hint>Leave empty to disable the checksum.</mat-hint>
+    </mat-form-field>
+    }
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <km-button [icon]="icon"
+             [label]="label"
+             [disabled]="form.invalid || !isYamlEditorValid"
+             [observable]="getObservable()"
+             (next)="onNext($event)" />
+</mat-dialog-actions>

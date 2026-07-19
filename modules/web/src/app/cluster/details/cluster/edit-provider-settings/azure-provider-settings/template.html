@@ -1,0 +1,79 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<form [formGroup]="form"
+      fxLayout="column">
+  <mat-form-field fxFlex>
+    <mat-label>Client ID</mat-label>
+    <input matInput
+           [formControlName]="Control.ClientID"
+           [name]="Control.ClientID"
+           autocomplete="off"
+           required
+           kmInputPassword
+           kmValueChangedIndicator>
+    @if (form.get(Control.ClientID).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field fxFlex>
+    <mat-label>Client Secret</mat-label>
+    <input matInput
+           [formControlName]="Control.ClientSecret"
+           [name]="Control.ClientSecret"
+           kmInputPassword
+           autocomplete="off"
+           required
+           kmValueChangedIndicator>
+    @if (form.get(Control.ClientSecret).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field fxFlex>
+    <mat-label>Tenant ID</mat-label>
+    <input matInput
+           [formControlName]="Control.TenantID"
+           autocomplete="off"
+           required
+           kmInputPassword
+           kmValueChangedIndicator>
+    @if (form.get(Control.TenantID).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field fxFlex>
+    <mat-label>Subscription ID</mat-label>
+    <input matInput
+           [formControlName]="Control.SubscriptionID"
+           autocomplete="off"
+           required
+           kmInputPassword
+           kmValueChangedIndicator>
+    @if (form.get(Control.SubscriptionID).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+</form>

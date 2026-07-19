@@ -1,0 +1,11 @@
+{
+  "apiserver": "HealthStatusUp",
+  "scheduler": "HealthStatusUp",
+  "controller": "HealthStatusUp",
+  "machineController": "HealthStatusUp",
+  "etcd": "HealthStatusUp",
+  "cloudProviderInfrastructure": "HealthStatusUp",
+  "userClusterControllerManager": "HealthStatusUp",
+  "gatekeeperAudit": "HealthStatusUp",
+  "gatekeeperController": "HealthStatusUp"
+}

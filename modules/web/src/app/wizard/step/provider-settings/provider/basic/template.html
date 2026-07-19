@@ -1,0 +1,58 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<div [formGroup]="form">
+  @switch (provider) {
+  @case (Providers.ALIBABA) {
+  <km-wizard-alibaba-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.AWS) {
+  <km-wizard-aws-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.DIGITALOCEAN) {
+  <km-wizard-digitalocean-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.HETZNER) {
+  <km-wizard-hetzner-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.KUBEVIRT) {
+  <km-wizard-kubevirt-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.NUTANIX) {
+  <km-wizard-nutanix-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.VSPHERE) {
+  <km-wizard-vsphere-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.AZURE) {
+  <km-wizard-azure-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.GCP) {
+  <km-wizard-gcp-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.OPENSTACK) {
+  <km-wizard-openstack-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.ANEXIA) {
+  <km-wizard-anexia-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.VMWARECLOUDDIRECTOR) {
+  <km-wizard-vmware-cloud-director-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  @case (Providers.BAREMETAL) {
+  <km-wizard-baremetal-provider-basic [formControl]="form.get(Controls.ProviderBasic)" />
+  }
+  }
+</div>

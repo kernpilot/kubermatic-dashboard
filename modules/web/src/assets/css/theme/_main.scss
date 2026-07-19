@@ -1,0 +1,67 @@
+// Copyright 2021 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'sass:color';
+@use 'sass:map';
+@use '@angular/material' as mat;
+@use 'km-var' as *;
+@import 'material/theme';
+@import 'global/theme';
+@import 'component';
+
+$my-typography: mat.m2-define-typography-config(
+  $font-family: 'Roboto, sans-serif',
+);
+
+@include mat.typography-hierarchy($my-typography);
+@include mat.elevation-classes;
+@include mat.app-background;
+
+@mixin theme($theme, $colors) {
+  $palette-background: map.get($theme, background);
+  $palette-foreground: map.get($theme, foreground);
+  $theme-colors: (
+    background-app-bar: mat.m2-get-color-from-palette($palette-background, app-bar),
+    background-card: mat.m2-get-color-from-palette($palette-background, card),
+    background-dialog: mat.m2-get-color-from-palette($palette-background, dialog),
+    background-disabled-button: mat.m2-get-color-from-palette($palette-background, disabled-button),
+    background-hover: mat.m2-get-color-from-palette($palette-background, hover),
+    background: mat.m2-get-color-from-palette($palette-background, background),
+    checkbox-disabled: mat.m2-get-color-from-palette($palette-foreground, disabled-checkbox),
+    checkbox-disabled-checked: mat.m2-get-color-from-palette($palette-foreground, disabled-checkbox-checked),
+    checkbox-disabled-border: mat.m2-get-color-from-palette($palette-foreground, disabled-checkbox-border),
+    divider-disabled: mat.m2-get-color-from-palette($palette-foreground, disabled-divider),
+    divider: mat.m2-get-color-from-palette($palette-foreground, divider),
+    project-switch: color.adjust(mat.m2-get-color-from-palette($palette-foreground, secondary-text), $alpha: 0.7),
+    text-disabled: mat.m2-get-color-from-palette($palette-foreground, disabled-text),
+    text-secondary: mat.m2-get-color-from-palette($palette-foreground, secondary-text),
+    text: mat.m2-get-color-from-palette($palette-foreground, text),
+  );
+
+  // Create merged colors map from custom and theme colors
+  // that can be accessed from components' theme files.
+  $merged-colors: map.merge($colors, $theme-colors);
+
+  // Emit CSS custom properties for runtime overrides.
+  @include emit-custom-properties($merged-colors);
+
+  // Override default material themes.
+  @include theme-material($merged-colors);
+
+  // Register global theming rules.
+  @include theme-global($merged-colors);
+
+  // Register component-level themes.
+  @include theme-components($merged-colors);
+}

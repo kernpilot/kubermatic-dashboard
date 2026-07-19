@@ -1,0 +1,101 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<div id="km-add-project-dialog">
+  <km-dialog-title>Add Project</km-dialog-title>
+  <mat-dialog-content>
+    <form [formGroup]="form"
+          fxLayout="column"
+          id="add-project-form">
+      <mat-form-field fxFlex>
+        <mat-label>Name</mat-label>
+        <input id="km-add-project-dialog-input"
+               matInput
+               required
+               [formControlName]="Controls.Name"
+               type="text"
+               autocomplete="off"
+               kmAutofocus>
+        @if (form.controls.name.hasError('required')) {
+        <mat-error>
+          <strong>Required</strong>
+        </mat-error>
+        }
+      </mat-form-field>
+
+      <div>
+        <div fxLayoutAlign=" center"
+             class="entry-label">
+          <span>Allowed Operating Systems</span>
+          <div class="km-icon-info km-pointer"
+               matTooltip="Allowed operating system shows if the operating system is allowed to be used with machine deployment,
+               and it is only applicable to the supported operating systems for a cloud provider."></div>
+        </div>
+
+        <mat-button-toggle-group group="projectOperatingSystemGroup"
+                                 [formControlName]="Controls.AllowedOperatingSystems"
+                                 (change)="onOperatingSystemChange($event.value)"
+                                 multiple
+                                 fxLayout="row wrap"
+                                 kmValueChangedIndicator>
+          @if (adminAllowedOperatingSystems.ubuntu) {
+          <mat-button-toggle [value]="OperatingSystem.Ubuntu">
+            <i class="km-os-image-ubuntu"></i>
+            Ubuntu
+          </mat-button-toggle>
+          }
+          @if (adminAllowedOperatingSystems.flatcar) {
+          <mat-button-toggle [value]="OperatingSystem.Flatcar">
+            <i class="km-os-image-flatcar"></i>
+            Flatcar
+          </mat-button-toggle>
+          }
+          @if (adminAllowedOperatingSystems.amzn2) {
+          <mat-button-toggle [value]="OperatingSystem.AmazonLinux2">
+            <i class="km-os-image-amazon-linux-2"></i>
+            Amazon Linux 2
+          </mat-button-toggle>
+          }
+          @if (adminAllowedOperatingSystems.rhel) {
+          <mat-button-toggle [value]="OperatingSystem.RHEL"
+                             #rhelToggle>
+            <i [ngClass]="rhelToggle.checked ? 'km-os-image-rhel' : 'km-os-image-rhel-gray'"></i>
+            RHEL
+          </mat-button-toggle>
+          }
+          @if (adminAllowedOperatingSystems.rockylinux) {
+          <mat-button-toggle [value]="OperatingSystem.RockyLinux">
+            <i class="km-os-image-rockylinux"></i>
+            Rocky Linux
+          </mat-button-toggle>
+          }
+        </mat-button-toggle-group>
+      </div>
+
+      <km-label-form title="Labels"
+                     [(labels)]="labels"
+                     [asyncKeyValidators]=asyncLabelValidators
+                     [formControlName]="Controls.Labels" />
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <km-button buttonId="km-add-project-dialog-save"
+               icon="km-icon-add"
+               label="Add Project"
+               [disabled]="!form.valid"
+               [observable]="getObservable()"
+               (next)="onNext($event)" />
+  </mat-dialog-actions>
+</div>

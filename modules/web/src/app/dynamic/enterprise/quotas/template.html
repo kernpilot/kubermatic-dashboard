@@ -1,0 +1,212 @@
+<!--
+               Kubermatic Enterprise Read-Only License
+                      Version 1.0 ("KERO-1.0”)
+                  Copyright © 2022 Kubermatic GmbH
+
+1. You may only view, read and display for studying purposes the source
+   code of the software licensed under this license, and, to the extent
+   explicitly provided under this license, the binary code.
+2. Any use of the software which exceeds the foregoing right, including,
+   without limitation, its execution, compilation, copying, modification
+   and distribution, is expressly prohibited.
+3. THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+END OF TERMS AND CONDITIONS
+-->
+
+<mat-card appearance="outlined">
+  <mat-card-header fxLayout="column">
+    <div fxFlex
+         fxLayout="column">
+      <mat-card-title>
+        <div fxFlex>Project Quotas</div>
+      </mat-card-title>
+      <km-default-project-quota class="default-project-quota" />
+
+      <div fxLayout="row"
+           fxLayoutAlign="center center">
+        <div class="filters"
+             fxLayout="row"
+             fxLayoutAlign=" center"
+             fxLayoutGap="16px">
+          <km-search-field fxFlex
+                           class="search"
+                           (queryChange)="onSearch($event)" />
+        </div>
+        <div fxFlex></div>
+        <button mat-flat-button
+                color="quaternary"
+                class="km-add-quota-btn"
+                (click)="addQuota()">
+          <i class="km-icon-mask km-icon-add"
+             matButtonIcon></i>
+          <span>Add Project Quota</span>
+        </button>
+      </div>
+    </div>
+  </mat-card-header>
+  <mat-card-content>
+    <div fxLayout="row"
+         fxLayoutAlign=" center"
+         fxLayoutGap="8px"
+         class="warning-container">
+      <i class="km-icon-warning"></i>
+      <span>GPU resources are not included in quota calculations.</span>
+    </div>
+    <table id="quotas-table"
+           class="km-table"
+           mat-table
+           matSort
+           [hidden]="isLoading || !quotas.length"
+           [dataSource]="dataSource">
+      <ng-container [matColumnDef]="Column.ProjectId">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-40"
+            mat-sort-header>Project</th>
+        <td mat-cell
+            *matCellDef="let element">
+          <div fxLayoutAlign=" center"
+               fxLayoutGap="10px">
+            <span>{{element?.subjectHumanReadableName || element?.name}}</span>
+            @if (element.isDefault) {
+            <span class="km-label-primary km-pointer"
+                  matTooltip="Project has been assigned the default project quota. This can be overridden by updating the quota values for this project.">
+              Default
+            </span>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container [matColumnDef]="Column.Memory">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-5"
+            mat-sort-header>Memory (GB)</th>
+        <td mat-cell
+            *matCellDef="let element">
+          @if (element.quota && (element.quota.memory || element.quota.memory === 0)) {
+          <div fxLayout="row"
+               fxLayoutAlign=" center"
+               fxLayoutGap="10px">
+            <mat-progress-bar value
+                              class="property-usage-bar"
+                              mode="determinate"
+                              [color]="getProgressBarData(element.subjectName, resourceType.Memory).color"
+                              [value]="getProgressBarData(element.subjectName, resourceType.Memory).value" />
+            <span>{{getProgressBarData(element.subjectName, resourceType.Memory).usageQuota}}</span>
+          </div>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container [matColumnDef]="Column.CPU">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-5"
+            mat-sort-header>CPU</th>
+        <td mat-cell
+            *matCellDef="let element">
+          @if (element.quota && (element.quota.cpu || element.quota.cpu === 0)) {
+          <div fxLayout="row"
+               fxLayoutAlign=" center"
+               fxLayoutGap="10px">
+            <mat-progress-bar value
+                              class="property-usage-bar"
+                              mode="determinate"
+                              [color]="getProgressBarData(element.subjectName, resourceType.CPU).color"
+                              [value]="getProgressBarData(element.subjectName, resourceType.CPU).value" />
+            <span>{{getProgressBarData(element.subjectName, resourceType.CPU).usageQuota}}</span>
+          </div>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container [matColumnDef]="Column.Storage">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-5"
+            mat-sort-header>Disk (GB)</th>
+        <td mat-cell
+            *matCellDef="let element">
+          @if (element.quota && (element.quota.storage || element.quota.storage === 0)) {
+          <div fxLayout="row"
+               fxLayoutAlign=" center"
+               fxLayoutGap="10px">
+            <mat-progress-bar value
+                              class="property-usage-bar"
+                              mode="determinate"
+                              [color]="getProgressBarData(element.subjectName, resourceType.Storage).color"
+                              [value]="getProgressBarData(element.subjectName, resourceType.Storage).value" />
+            <span>{{getProgressBarData(element.subjectName, resourceType.Storage).usageQuota}}</span>
+          </div>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container [matColumnDef]="Column.Actions">
+        <th mat-header-cell
+            *matHeaderCellDef
+            class="km-header-cell p-5"></th>
+        <td mat-cell
+            *matCellDef="let element">
+          <div class="km-table-actions"
+               [matTooltip]="element.isDefault ? 'Removing this Quota is not allowed since project has been assigned the default project quota. This can be overridden by updating the quota values for this project or by removing the default(global) project quota.' : null"
+               fxLayoutAlign="end">
+            <button mat-icon-button
+                    (click)="editQuota(element)">
+              <i class="km-icon-mask km-icon-edit"></i>
+            </button>
+
+            <button mat-icon-button
+                    [disabled]="element.isDefault"
+                    (click)="deleteQuota(element)"
+                    [attr.id]="'km-quota-delete-btn-' + element.name">
+              <i class="km-icon-mask km-icon-delete"></i>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row
+          class="km-header-row"
+          *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          class="km-mat-row"></tr>
+    </table>
+
+    @if (isLoading) {
+    <div class="km-row"
+         fxLayoutAlign="center center">
+      <mat-spinner id="quotas-loading-spinner"
+                   color="accent"
+                   class="km-spinner"
+                   [diameter]="25" />
+    </div>
+    }
+
+    @if (!isLoading && !this.quotas.length) {
+    <div id="quotas-not-found"
+         class="km-row"
+         fxLayoutAlign="center center">No quotas found</div>
+    }
+
+    <div id="quotas-paginator"
+         [hidden]="quotas?.length < paginator?.pageSize"
+         class="km-paginator-container">
+      <div fxLayout="row"
+           fxLayoutAlign="flex-end center">
+        <km-pagination-page-size />
+        <mat-paginator showFirstLastButtons />
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>

@@ -1,0 +1,65 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<form [formGroup]="form"
+      fxLayout="column"
+      fxLayoutGap="8px">
+  <km-label-form title="Provider Tags"
+                 [labels]="tags"
+                 noValidators="true"
+                 (labelsChange)="onTagsChange($event)"
+                 [formControlName]="Controls.Tags" />
+
+  <mat-checkbox [id]="Controls.IsSpotInstance"
+                [formControlName]="Controls.IsSpotInstance"
+                class="checkbox"
+                kmValueChangedIndicator>
+    Spot Instance
+    <i class="km-icon-info km-pointer"
+       matTooltip="Indicates whether the created machine is an AWS EC2 Spot Instance or on-demand EC2 instance."></i>
+  </mat-checkbox>
+
+  @if (isSpotInstance) {
+  <div @pushDown
+       fxLayout="column"
+       fxLayoutGap="16px">
+    <km-number-stepper [formControlName]="Controls.SpotInstanceMaxPrice"
+                       mode="errors"
+                       label="Spot Instance Max Price (in USD)"
+                       hint="Maximum price you are willing to pay per instance hour. Your instance runs when your maximum price is greater than the Spot Instance price."
+                       type="decimal"
+                       min="0.0001"
+                       [required]="isSpotInstance"
+                       step="0.01" />
+    <mat-checkbox [id]="Controls.SpotInstancePersistentRequest"
+                  [formControlName]="Controls.SpotInstancePersistentRequest"
+                  kmValueChangedIndicator>
+      Spot Instance Persistent Request
+      <i class="km-icon-info km-pointer"
+         matTooltip="Ensures that your request will be submitted every time your Spot Instance is terminated."></i>
+    </mat-checkbox>
+  </div>
+  }
+
+  <mat-checkbox [id]="Controls.AssignPublicIP"
+                [formControlName]="Controls.AssignPublicIP"
+                class="checkbox"
+                kmValueChangedIndicator>Assign Public IP</mat-checkbox>
+
+  <mat-checkbox [id]="Controls.EBSVolumeEncrypted"
+                [formControlName]="Controls.EBSVolumeEncrypted"
+                class="checkbox"
+                kmValueChangedIndicator>EBS Volume Encryption</mat-checkbox>
+</form>

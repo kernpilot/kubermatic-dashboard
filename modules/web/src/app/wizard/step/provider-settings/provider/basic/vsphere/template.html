@@ -1,0 +1,97 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<form [formGroup]="form"
+      fxLayout="column"
+      fxLayoutGap="8px">
+  @if (useCustomCloudCredentials) {
+  <mat-card-header class="km-no-padding">
+    <mat-card-title>Credentials for CCM and CSI drivers</mat-card-title>
+  </mat-card-header>
+  }
+  <mat-form-field fxFlex>
+    <mat-label>Username</mat-label>
+    <input matInput
+           [formControlName]="Controls.Username"
+           type="text"
+           autocomplete="off"
+           required />
+    @if (form.get(Controls.Username).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field fxFlex>
+    <mat-label>Password</mat-label>
+    <input matInput
+           [formControlName]="Controls.Password"
+           kmInputPassword
+           autocomplete="off"
+           required />
+    @if (form.get(Controls.Password).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-checkbox [formControlName]="Controls.UseCustomCloudCredentials"
+                [name]="Controls.UseCustomCloudCredentials">
+    <div fxLayoutAlign=" center"
+         fxLayoutGap="5px">
+      <span>Use dedicated credentials to provision vSphere resources</span>
+      <i class="km-icon-info km-pointer"
+         matTooltip="These credentials will be used for managing and provisioning resources on vSphere including VMs, tags, folders, networks etc. For cloud provider functionality i.e. external CCM and CSI drivers, the credentials specified in the section above will be used."></i>
+    </div>
+  </mat-checkbox>
+
+  @if (useCustomCloudCredentials) {
+  <mat-card-header class="km-no-padding">
+    <mat-card-title>Credentials for provisioning vSphere resources</mat-card-title>
+  </mat-card-header>
+  }
+
+  @if (useCustomCloudCredentials) {
+  <mat-form-field fxFlex>
+    <mat-label>Infrastructure Management Username</mat-label>
+    <input matInput
+           [formControlName]="Controls.InfraManagementUsername"
+           type="text"
+           autocomplete="off"
+           required />
+    @if (form.get(Controls.InfraManagementUsername).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+  <mat-form-field fxFlex>
+    <mat-label>Infrastructure Management Password</mat-label>
+    <input matInput
+           [formControlName]="Controls.InfraManagementPassword"
+           kmInputPassword
+           autocomplete="off"
+           required />
+    @if (form.get(Controls.InfraManagementPassword).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+  }
+</form>

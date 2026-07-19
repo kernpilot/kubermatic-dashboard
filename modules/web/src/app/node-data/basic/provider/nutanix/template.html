@@ -1,0 +1,141 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<form [formGroup]="form"
+      fxLayout="column"
+      fxLayoutGap="8px">
+  <mat-form-field fxFlex>
+    <mat-label>Image Name</mat-label>
+    <input [formControlName]="Controls.ImageName"
+           matInput
+           type="text"
+           autocomplete="off"
+           required
+           kmValueChangedIndicator>
+  </mat-form-field>
+
+  <km-combobox [selected]="selectedSubnet"
+               [options]="getSubnets()"
+               [valueFormatter]="subnetsDisplayName.bind(this)"
+               [formControlName]="Controls.SubnetName"
+               (changed)="onSubnetChange($event)"
+               [label]="subnetLabel"
+               inputLabel="Select subnet..."
+               filterBy="name"
+               required>
+    <div *option="let subnet">{{subnet.name}} ({{subnet.type}})</div>
+  </km-combobox>
+
+  <km-number-stepper [formControlName]="Controls.CPUs"
+                     mode="errors"
+                     label="CPUs"
+                     min="1"
+                     required />
+
+  <km-number-stepper [formControlName]="Controls.CPUCores"
+                     mode="errors"
+                     label="Cores per CPU"
+                     min="1"
+                     required />
+
+  <mat-checkbox [formControlName]="Controls.CPUPassthrough"
+                fxFlex
+                kmValueChangedIndicator>
+    CPU Passthrough
+  </mat-checkbox>
+
+  <km-number-stepper [formControlName]="Controls.MemoryMB"
+                     mode="errors"
+                     label="Memory (MB)"
+                     min="1"
+                     required />
+
+  <km-number-stepper [formControlName]="Controls.DiskSize"
+                     mode="errors"
+                     label="Disk Size (GB)"
+                     min="1"
+                     required />
+
+  <mat-card-header class="km-no-padding"
+                   fxLayoutAlign=" center">
+    <mat-card-title>Categories</mat-card-title>
+    <div fxFlex></div>
+    <button mat-flat-button
+            type="button"
+            color="quaternary"
+            (click)="addCategory()">
+      <i class="km-icon-mask km-icon-add"
+         matButtonIcon></i>
+      <span>Add Category</span>
+    </button>
+  </mat-card-header>
+
+  <div [formArrayName]="Controls.Categories">
+    @for (control of categoriesFormArray.controls; track control; let i = $index) {
+    <div [formGroupName]="i">
+      <div fxFlex
+           fxLayoutGap="10px">
+        <km-combobox [options]="filteredCategories[getSelectedCategory(control) || '']"
+                     [formControlName]="Controls.Category"
+                     [label]="getCategoryLabel(control)"
+                     [required]="true"
+                     [enableKmValueChangedIndicator]="false"
+                     [ngClass]="{'km-value-changed':isCategoryChanged(i)}"
+                     inputLabel="Select category..."
+                     filterBy="name"
+                     fxFlex>
+          <div *option="let category">{{category.name}}</div>
+        </km-combobox>
+        <km-combobox [options]="categoryValues[getSelectedCategory(control)]"
+                     [formControlName]="Controls.CategoryValue"
+                     [label]="categoryValuesLabel[getSelectedCategory(control)] || CategoryValueState.Empty"
+                     [isDisabled]="control.get(Controls.Category).invalid"
+                     [enableKmValueChangedIndicator]="false"
+                     [required]="true"
+                     inputLabel="Select category value..."
+                     filterBy="value"
+                     fxFlex>
+          <div *option="let categoryValue">{{categoryValue.value}}</div>
+        </km-combobox>
+        <button mat-icon-button
+                type="button"
+                matTooltip="Delete category"
+                class="delete-button"
+                (click)="removeCategory(i)">
+          <i class="km-icon-mask km-icon-delete"></i>
+        </button>
+      </div>
+    </div>
+    }
+  </div>
+
+  @if (removedCategories?.length) {
+  <div class="removed-categories-form">
+    <p>Removed Categories</p>
+    @for (category of removedCategories; track category; let i = $index) {
+    <div>
+      <p>Category: {{category?.category}}, Value: {{category?.categoryValue}}</p>
+    </div>
+    }
+  </div>
+  }
+
+  @if (categoriesFormArray.length === 0) {
+  <div class="categories-msg km-text-muted">
+    Select categories for Nutanix.
+  </div>
+  }
+
+</form>

@@ -1,0 +1,74 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<form [formGroup]="form"
+      fxLayout="column"
+      fxLayoutGap="15px">
+  <km-wizard-openstack-provider-extended-credentials [formControl]="form.get(Controls.Credentials)" />
+
+  <mat-checkbox [formControlName]="Controls.EnableIngressHostname"
+                [name]="Controls.EnableIngressHostname">
+    <div fxLayoutGap="8px"
+         fxLayoutAlign=" center">
+      <span>Enable Ingress Hostname</span>
+      <i class="km-pointer km-icon-info"
+         matTooltip='Enable the "enable-ingress-hostname" cloud provider option on the Openstack CCM.'></i>
+    </div>
+  </mat-checkbox>
+
+  <mat-form-field fxFlex>
+    <mat-label>Ingress Hostname Suffix</mat-label>
+    <input matInput
+           [formControlName]="Controls.IngressHostnameSuffix"
+           [name]="Controls.IngressHostnameSuffix"
+           type="text"
+           autocomplete="off" />
+    <mat-hint>
+      Set a specific suffix for the hostnames used for the PROXY protocol workaround that is enabled by
+      <code>EnableIngressHostname</code>. The suffix is set to <code>nip.io</code> by default.
+    </mat-hint>
+  </mat-form-field>
+
+  <div class="button-navigation">
+    <div fxLayout="row"
+         fxLayoutAlign="start center"
+         fxLayoutGap="8px">
+      <button type="button"
+              mat-flat-button
+              color="primary"
+              matTooltip="Configure Load Balancer Classes for advanced load balancing options"
+              km-
+              [disabled]="isLoadBalancerClassButtonDisabled"
+              (click)="openLoadBalancerClassDialog()"
+              [matTooltipDisabled]="!isLoadBalancerClassButtonDisabled">
+        <i class="km-icon-mask km-icon-add"
+           matButtonIcon></i>
+        <span>Configure Load Balancer Classes</span>
+      </button>
+      @if (loadBalancerClassCount > 0) {
+      <span class="km-text-muted km-pointer"
+            (click)="openLoadBalancerClassDialog()"
+            matTooltip="Click to view/edit configured LoadBalancer classes">
+        ({{loadBalancerClassCount}} configured)
+      </span>
+      }
+    </div>
+    <div class="km-muted-light">
+      Set up Load Balancer Classes for this Cluster. This can be used to configure multiple classes with different
+      floating networks and subnets, etc.
+    </div>
+  </div>
+</form>

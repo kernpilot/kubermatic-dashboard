@@ -1,0 +1,143 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<div fxLayout>
+  <div fxFlex
+       fxLayoutAlign="end center">
+    <button mat-flat-button
+            type="button"
+            (click)="goBack()">
+      <i class="km-icon-mask km-icon-back"
+         matButtonIcon></i>
+      <span>Go Back</span>
+    </button>
+  </div>
+</div>
+
+<mat-card appearance="outlined">
+  <mat-card-content fxLayout="row wrap"
+                    fxLayoutGap="20px grid">
+    @if (user) {
+    <div fxLayout="row"
+         fxFlex="50"
+         fxFlex.sm="100"
+         fxLayoutGap="30px">
+      <div class="km-icon-mask km-user"></div>
+      <div fxLayout="column"
+           fxLayoutGap="10px">
+        <div class="user-name">{{user.name}}</div>
+        <div class="user-email">{{user.email}}</div>
+        @if (user.groups) {
+        <km-property>
+          <div key
+               class="user-groups-key">OIDC Groups</div>
+          <div value>
+            <km-labels [labels]="user.groups" />
+          </div>
+        </km-property>
+        } @else {
+        <div>
+          No OIDC groups assigned.
+          @if (!branding.hideDocumentationLinks) {
+          <a href="https://docs.kubermatic.com/kubermatic/{{editionVersion}}/architecture/iam-role-based-access-control/groups-support/"
+             target="_blank"
+             rel="noreferrer noopener"
+             fxLayout="row inline"
+             fxLayoutAlign=" center">Learn more <i class="km-icon-external-link i-18"></i></a>
+          }
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+    @if (settings) {
+    <div class="account-settings"
+         fxFlex="50"
+         fxFlex.sm="100"
+         fxLayout="column">
+      <div class="account-settings-header">User Settings</div>
+      <div fxLayout="row">
+        <div class="entry-label"
+             fxLayoutAlign=" center">Items per page
+        </div>
+        <mat-form-field class="input sm">
+          <mat-select disableOptionCentering
+                      id="km-items-per-page-select"
+                      [(ngModel)]="settings.itemsPerPage"
+                      (selectionChange)="onSettingsChange()">
+            @for (itemsPerPageOption of itemsPerPageOptions; track itemsPerPageOption) {
+            <mat-option [value]="itemsPerPageOption">
+              {{itemsPerPageOption}}
+            </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <km-spinner-with-confirmation [isSaved]="isEqual(settings.itemsPerPage, apiSettings.itemsPerPage)"
+                                      fxFlexAlign=" center" />
+      </div>
+      <!-- Load the theming module -->
+      <router-outlet name="theming" />
+      <div fxLayout="row">
+        <div class="entry-label"
+             fxLayoutAlign=" center">
+          <span>Default Project</span>
+          <div class="km-icon-info km-pointer"
+               matTooltip="Select a project to be redirected to after login."></div>
+        </div>
+        <mat-form-field class="input">
+          <mat-select disableOptionCentering
+                      id="km-default-project-select"
+                      [(ngModel)]="settings.selectedProjectID"
+                      (selectionChange)="onSettingsChange()"
+                      [placeholder]="hasDefaultProject()">
+            <mat-option value=""
+                        class="km-text-muted">None
+            </mat-option>
+            @for (project of projects; track project) {
+            <mat-option [value]="project.id">
+              {{project.name}}
+            </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <km-spinner-with-confirmation [isSaved]="isEqual(settings.selectedProjectID, apiSettings.selectedProjectID)"
+                                      fxFlexAlign=" center" />
+      </div>
+      <div fxLayout="row">
+        <div class="entry-label"
+             fxLayoutAlign=" center">Project Landing Page
+        </div>
+        <mat-button-toggle-group [(value)]="selectedProjectLandingPage"
+                                 (change)="onLandingPageChange($event.value)"
+                                 fxLayout="row wrap">
+          <mat-button-toggle class="project-overview-button"
+                             value="{{view.Overview}}">
+            <i class="km-icon-mask km-icon-projects-card"></i>
+            Project Overview
+          </mat-button-toggle>
+          <mat-button-toggle class="clusters-button"
+                             value="{{view.Clusters}}">
+            <i class="km-icon-mask km-icon-cluster"></i>
+            Clusters
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+        <km-spinner-with-confirmation [isSaved]="isEqual(settings.useClustersView, apiSettings.useClustersView)"
+                                      fxFlexAlign=" center" />
+      </div>
+    </div>
+    }
+  </mat-card-content>
+</mat-card>

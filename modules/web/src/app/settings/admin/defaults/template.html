@@ -1,0 +1,601 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title fxFlex
+                    fxLayout="row"
+                    fxLayoutAlign=" center">
+      <div fxFlex>Defaults</div>
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <div fxLayout="column"
+         fxLayoutGap="32px"
+         class="admin-settings">
+      <div fxFlex
+           fxLayout="column"
+           fxLayoutGap="16px">
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Cleanup on Cluster Deletion</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip='Set "clean up connected load balancers" and "clean up connected volumes (PVs and PVCS)" checkboxes on Cluster Deletion to enabled by default. Enable "Enforce" to make users unable to edit the checkboxes.'></div>
+          </div>
+          <div fxFlexAlign=" center"
+               fxLayout="row">
+            <mat-checkbox [(ngModel)]="settings.cleanupOptions.enabled"
+                          (change)="onSettingsChange()"
+                          id="km-cleanup-enable-setting"
+                          fxFlexAlign=" center">Enable by Default
+            </mat-checkbox>
+            <mat-checkbox [(ngModel)]="settings.cleanupOptions.enforced"
+                          (change)="onSettingsChange()"
+                          id="km-cleanup-enforce-setting"
+                          fxFlexAlign=" center">Enforce Default
+            </mat-checkbox>
+            <km-spinner-with-confirmation [isSaved]="isEqual(settings.cleanupOptions, apiSettings.cleanupOptions)" />
+          </div>
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>OPA Integration</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip='Set "OPA Integration" checkbox on cluster creation to enabled by default. Enable "Enforce" to make users unable to edit the checkbox.'></div>
+            <i class="km-icon-warning km-pointer"
+               matTooltip="OPA (Open Policy Agent) has been deprecated in KKP 2.28 and will be removed in the future, Kyverno has replaced it as an Enterprise Edition feature for policy management."></i>
+          </div>
+
+          <div fxFlexAlign=" center"
+               fxLayout="row">
+            <mat-checkbox [(ngModel)]="settings.opaOptions.enabled"
+                          (change)="onSettingsChange()"
+                          id="km-opa-enable-setting"
+                          fxFlexAlign=" center">Enable by Default
+            </mat-checkbox>
+            <mat-checkbox [(ngModel)]="settings.opaOptions.enforced"
+                          (change)="onSettingsChange()"
+                          id="km-opa-enforce-setting"
+                          fxFlexAlign=" center">Enforce Default
+            </mat-checkbox>
+            <km-spinner-with-confirmation [isSaved]="isEqual(settings.opaOptions, apiSettings.opaOptions)" />
+          </div>
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>User Cluster Logging</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip='Set "User Cluster Logging" checkbox on cluster creation to enabled by default. Enable "Enforce" to make users unable to edit the checkbox.'></div>
+          </div>
+          <div fxFlexAlign=" center"
+               fxLayout="row">
+            <mat-checkbox [(ngModel)]="settings.mlaOptions.loggingEnabled"
+                          (change)="onSettingsChange()"
+                          fxFlexAlign=" center">Enable by Default
+            </mat-checkbox>
+            <mat-checkbox [(ngModel)]="settings.mlaOptions.loggingEnforced"
+                          (change)="onSettingsChange()"
+                          fxFlexAlign=" center">Enforce Default
+            </mat-checkbox>
+            <km-spinner-with-confirmation [isSaved]="isMLALoggingEqual()" />
+          </div>
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>User Cluster Monitoring</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip='Set "User Cluster Monitoring" checkbox on cluster creation to enabled by default. Enable "Enforce" to make users unable to edit the checkbox.'></div>
+          </div>
+          <div fxFlexAlign=" center"
+               fxLayout="row">
+            <mat-checkbox [(ngModel)]="settings.mlaOptions.monitoringEnabled"
+                          (change)="onSettingsChange()"
+                          fxFlexAlign=" center">Enable by Default
+            </mat-checkbox>
+            <mat-checkbox [(ngModel)]="settings.mlaOptions.monitoringEnforced"
+                          (change)="onSettingsChange()"
+                          fxFlexAlign=" center">Enforce Default
+            </mat-checkbox>
+            <km-spinner-with-confirmation [isSaved]="isMLAMonitoringEqual()" />
+          </div>
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Auto Upgrades Machine Deployments</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip='Set "Auto Upgrades Machine Deployments" checkbox on machine deployments creation to enabled by default. Enable "Enforce" to make users unable to edit the checkbox.'></div>
+          </div>
+          <div fxFlexAlign=" center"
+               fxLayout="row">
+            <mat-checkbox [(ngModel)]="settings.machineDeploymentOptions.autoUpdatesEnabled"
+                          (change)="onSettingsChange()"
+                          fxFlexAlign=" center">Enable by Default
+            </mat-checkbox>
+            <mat-checkbox [(ngModel)]="settings.machineDeploymentOptions.autoUpdatesEnforced"
+                          (change)="onSettingsChange()"
+                          fxFlexAlign=" center">Enforce Default
+            </mat-checkbox>
+            <km-spinner-with-confirmation [isSaved]="isEqual(settings.machineDeploymentOptions, apiSettings.machineDeploymentOptions)" />
+          </div>
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Enable External Clusters</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Enables external clusters in the UI and allows access to them through the API."></div>
+          </div>
+          <mat-checkbox [(ngModel)]="settings.enableExternalClusterImport"
+                        (change)="onSettingsChange()"
+                        id="km-enable-external-clusters-setting" />
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.enableExternalClusterImport, apiSettings.enableExternalClusterImport)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Enable Kubernetes Dashboard</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip='Show/Hide "Open Dashboard" button on cluster details and allow/block Kubernetes Dashboard access through the API.'></div>
+            <i class="km-icon-warning km-pointer"
+               [matTooltip]="KUBERNETES_DASHBOARD_DEPRECATED_MESSAGE"></i>
+          </div>
+          <mat-checkbox [(ngModel)]="settings.enableDashboard"
+                        (change)="onSettingsChange()"
+                        [disabled]="!isKubernetesDashboardFeatureGatesEnabled()"
+                        id="km-enable-kubernetes-dashboard-setting">
+            @if (!isKubernetesDashboardFeatureGatesEnabled()) {
+            <mat-hint>This feature requires both OIDC Kubeconfig and OpenID Auth Plugin feature flags to be enabled.
+              @if (getDocumentationLink()) {
+              Visit the
+              <a [href]="getDocumentationLink()"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="km-clickable-link"
+                 fxLayout="row inline"
+                 fxLayoutAlign=" center">
+                documentation <i class="km-icon-external-link i-18"></i>
+              </a>
+              to learn more.
+              }
+            </mat-hint>
+            }
+          </mat-checkbox>
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.enableDashboard, apiSettings.enableDashboard)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Enable OIDC Kubeconfig</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Use OIDC provider as a proxy for kubeconfig download. When enabled, the option to download admin kubeconfig will be disabled from UI"></div>
+          </div>
+          <mat-checkbox [(ngModel)]="settings.enableOIDCKubeconfig"
+                        [disabled]="!isOIDCKubeCfgEndpointEnabled"
+                        (change)="onOIDCKubeconfigSettingsChange()"
+                        id="km-enable-oidc-setting">
+            @if (!isOIDCKubeCfgEndpointEnabled) {
+            <mat-hint>This feature is disabled.
+              @if (getDocumentationLink()) {
+              Visit the
+              <a [href]="getDocumentationLink()"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="km-clickable-link"
+                 fxLayout="row inline"
+                 fxLayoutAlign=" center">
+                documentation <i class="km-icon-external-link i-18"></i>
+              </a>
+              to learn more.
+              }
+            </mat-hint>
+            }
+          </mat-checkbox>
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.enableOIDCKubeconfig, apiSettings.enableOIDCKubeconfig)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Enable etcd Backups</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Enable etcd backup feature."></div>
+          </div>
+          <mat-checkbox class="experimental-label"
+                        [(ngModel)]="settings.enableEtcdBackup"
+                        (change)="onSettingsChange()" />
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.enableEtcdBackup, apiSettings.enableEtcdBackup)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Disable Admin Kubeconfig API endpoints</span>
+            <div class="km-icon-info km-pointer centered"
+                 matTooltip="Disable the option to download admin kubeconfig through corresponding API endpoints."></div>
+          </div>
+          <mat-checkbox [(ngModel)]="settings.disableAdminKubeconfig"
+                        [disabled]="!settings.enableOIDCKubeconfig"
+                        (change)="onSettingsChange()"
+                        id="km-disabled-admin-kubeconfig-setting">
+            @if (!settings.enableOIDCKubeconfig) {
+            <mat-hint>This feature requires the OIDC kubeconfig feature to be enabled.
+              @if (getDocumentationLink()) {
+              Visit the
+              <a [href]="getDocumentationLink()"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="km-clickable-link"
+                 fxLayout="row inline"
+                 fxLayoutAlign=" center">
+                documentation <i class="km-icon-external-link i-18"></i>
+              </a>
+              to learn more.
+              }
+            </mat-hint>
+            }
+          </mat-checkbox>
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.disableAdminKubeconfig, apiSettings.disableAdminKubeconfig)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Enable WebTerminal</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip='Show/Hide "Web Terminal" button on cluster details and allow/block web terminal pod access through terminal.'></div>
+          </div>
+          <mat-checkbox [(ngModel)]="settings.webTerminalOptions.enabled"
+                        [disabled]="!settings.enableOIDCKubeconfig"
+                        (change)="onSettingsChange()" />
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.webTerminalOptions.enabled, apiSettings.webTerminalOptions.enabled)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Enable WebTerminal Internet Access</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Enable internet access for web terminal. On enabling/disabling this option will not affect existing terminal instances."></div>
+          </div>
+          <mat-checkbox [(ngModel)]="settings.webTerminalOptions.enableInternetAccess"
+                        [disabled]="!settings.enableOIDCKubeconfig"
+                        (change)="onSettingsChange()" />
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.webTerminalOptions.enableInternetAccess, apiSettings.webTerminalOptions.enableInternetAccess)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Enable Share Cluster</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip='Show/Hide "Share Cluster" button on cluster details and allow/block cluster sharing access with other users.'></div>
+          </div>
+          <mat-checkbox [(ngModel)]="settings.enableShareCluster"
+                        [disabled]="!settings.enableOIDCKubeconfig"
+                        (change)="onSettingsChange()" />
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.enableShareCluster, apiSettings.enableShareCluster)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Enable Cluster Backups</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Enable the cluster backup feature."></div>
+          </div>
+          <mat-checkbox class="experimental-label"
+                        [(ngModel)]="settings.enableClusterBackups"
+                        (change)="onSettingsChange()" />
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.enableClusterBackups, apiSettings.enableClusterBackups)" />
+        </div>
+
+        @if (settings.enableClusterBackups) {
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Default Velero Checksum Algorithm</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Select a default checksum algorithm which will be used for backup storage location."></div>
+          </div>
+          <mat-form-field fxFlex
+                          subscriptSizing="dynamic">
+            <mat-label>Default Checksum Algorithm</mat-label>
+            <mat-select class="km-select-ellipsis"
+                        [value]="settings.clusterBackupOptions?.defaultChecksumAlgorithm"
+                        (selectionChange)="onVeleroChecksumAlgorithmChange($event.value)"
+                        disableOptionCentering>
+              @for (algorithm of veleroChecksumAlgorithms; track algorithm) {
+              <mat-option [value]="algorithm"> {{algorithm}} </mat-option>
+              }
+              <mat-select-trigger fxFlex
+                                  fxLayout="row"
+                                  fxLayoutAlign=" center">
+                <div fxFlex
+                     fxLayoutAlign="start">
+                  {{settings.clusterBackupOptions?.defaultChecksumAlgorithm}}
+                </div>
+                <div fxFlex
+                     fxLayoutAlign="end"
+                     class="km-select-trigger-button-wrapper">
+                  @if (settings.clusterBackupOptions?.defaultChecksumAlgorithm) {
+                  <button (click)="onVeleroChecksumAlgorithmChange(''); $event.stopPropagation()"
+                          matSuffix
+                          mat-icon-button
+                          aria-label="Clear">
+                    <i class="km-icon-mask km-icon-remove"></i>
+                  </button>
+                  }
+                </div>
+              </mat-select-trigger>
+            </mat-select>
+          </mat-form-field>
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.clusterBackupOptions?.defaultChecksumAlgorithm, apiSettings.clusterBackupOptions?.defaultChecksumAlgorithm)" />
+        </div>
+        }
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>User Cluster Alertmanager Prefix</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip='Domain name prefix on which the User Cluster Alertmanager is running. Seed name and the base domain under which KKP is running will be appended to it, e.g. for prefix "alertmanger" the final url would be "https://alertmanager.<seed-name>.<kkp-domain>"'></div>
+          </div>
+          <mat-form-field fxFlex="40"
+                          fxFlexAlign=" center">
+            <mat-label>User Cluster Alertmanager Prefix</mat-label>
+            <input matInput
+                   (keyup)="onSettingsChange()"
+                   [(ngModel)]="settings.mlaAlertmanagerPrefix"
+                   type="text" />
+          </mat-form-field>
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.mlaAlertmanagerPrefix, apiSettings.mlaAlertmanagerPrefix)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>User Cluster Grafana Prefix</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip='Domain name prefix on which the User Cluster Grafana is running. Seed name and the base domain under which KKP is running will be appended to it, e.g. for prefix "grafana" the final url would be "https://grafana.<seed-name>.<kkp-domain>"'></div>
+          </div>
+          <mat-form-field fxFlex="40"
+                          fxFlexAlign=" center">
+            <mat-label>User Cluster Grafana Prefix</mat-label>
+            <input matInput
+                   (keyup)="onSettingsChange()"
+                   [(ngModel)]="settings.mlaGrafanaPrefix"
+                   type="text" />
+          </mat-form-field>
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.mlaGrafanaPrefix, apiSettings.mlaGrafanaPrefix)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">Machine Deployment</div>
+          <km-number-stepper [(ngModel)]="settings.defaultNodeCount"
+                             (ngModelChange)="onSettingsChange()"
+                             id="km-initial-replicas-setting"
+                             label="Initial Replicas"
+                             min="0"
+                             max="50"
+                             required />
+          <km-spinner-with-confirmation [isSaved]="isEqual(settings.defaultNodeCount, apiSettings.defaultNodeCount)" />
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Allowed Operating Systems</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Allowed operating system shows if the operating system is allowed to be used with machine deployment,
+                 and it is only applicable to the supported operating systems for a cloud provider."></div>
+          </div>
+
+          <mat-button-toggle-group group="operatingSystemGroup"
+                                   [(ngModel)]="allowedOperatingSystems"
+                                   (change)="onOperatingSystemChange($event.value)"
+                                   multiple
+                                   fxLayout="row wrap"
+                                   kmValueChangedIndicator>
+            <mat-button-toggle [value]="OperatingSystem.Ubuntu"
+                               [disabled]="isLastEnabledOS(OperatingSystem.Ubuntu)">
+              <i class="km-os-image-ubuntu"></i>
+              Ubuntu
+            </mat-button-toggle>
+            <mat-button-toggle [value]="OperatingSystem.Flatcar"
+                               [disabled]="isLastEnabledOS(OperatingSystem.Flatcar)">
+              <i class="km-os-image-flatcar"></i>
+              Flatcar
+            </mat-button-toggle>
+            <mat-button-toggle [value]="OperatingSystem.AmazonLinux2"
+                               [disabled]="isLastEnabledOS(OperatingSystem.AmazonLinux2)">
+              <i class="km-os-image-amazon-linux-2"></i>
+              Amazon Linux 2
+            </mat-button-toggle>
+            <mat-button-toggle [value]="OperatingSystem.RHEL"
+                               [disabled]="isLastEnabledOS(OperatingSystem.RHEL)"
+                               #rhelToggle>
+              <i [ngClass]="rhelToggle.checked ? 'km-os-image-rhel' : 'km-os-image-rhel-gray'"></i>
+              RHEL
+            </mat-button-toggle>
+            <mat-button-toggle [value]="OperatingSystem.RockyLinux"
+                               [disabled]="isLastEnabledOS(OperatingSystem.RockyLinux)">
+              <i class="km-os-image-rockylinux"></i>
+              Rocky Linux
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Static Labels</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="StaticLabels are a list of labels for the clusters. Default labels are added during cluster creation and can be deleted. Protected labels are also added during creation but cannot be deleted."></div>
+          </div>
+          <km-static-labels-form class="static-labels"
+                                 [staticLabels]="settings.staticLabels"
+                                 (staticLabelsChange)="onStaticLabelsChange($event)" />
+        </div>
+        <div fxLayout="row">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Annotations</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Global configurations for annotations for clusters, machine deployments, and nodes. Hidden annotations are not visible on UI and protected annotations are visible but cannot be updated or deleted."></div>
+          </div>
+          <div fxFlex
+               fxLayout="row"
+               fxLayoutGap="10px">
+            <km-chip-list label="Hidden Annotations"
+                          [tags]="hiddenAnnotations"
+                          (onChange)="onHiddenAnnotationsChange($event)"
+                          fxFlex />
+
+            <km-chip-list label="Protected Annotations"
+                          [tags]="protectedAnnotations"
+                          (onChange)="onProtectedAnnotationsChange($event)"
+                          description="Use comma, space or enter key as the separator. presetName is an internal KKP protected annotation and cannot be deleted."
+                          fxFlex />
+          </div>
+        </div>
+        <div fxLayout="row"
+             fxLayoutAlign=" center">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>Event Rate Limit</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Configure default event rate limits for user clusters."></div>
+          </div>
+          <div fxFlexAlign=" center"
+               fxLayout="column">
+            <div>
+              <mat-checkbox [ngModel]="eventRateLimitConfig?.enabled"
+                            [disabled]="eventRateLimitConfig?.enforced"
+                            (change)="onEventRateLimitConfigChange(eventRateConfigActions.Enabled, $event.checked)"
+                            fxFlexAlign=" center">Default
+              </mat-checkbox>
+              <mat-checkbox [ngModel]="eventRateLimitConfig?.enforced"
+                            (change)="onEventRateLimitConfigChange(eventRateConfigActions.Enforced, $event.checked)"
+                            fxFlexAlign=" center">Enforce
+              </mat-checkbox>
+            </div>
+            <div fxLayout="row">
+              <div fxFlexAlign=" center"
+                   fxLayout="row">
+                <km-wizard-cluster-event-rate-limit [formControl]="eventRateLimitConfigFormControl"
+                                                    [disableAll]="disableEventRateLimitConfigForm" />
+              </div>
+              <km-spinner-with-confirmation [isSaved]="!isEventRateLimitUpdating" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title fxFlex
+                    fxLayout="row"
+                    fxLayoutAlign=" center">
+      <div fxFlex>Provider Defaults</div>
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <div fxLayout="column"
+         fxLayoutGap="32px"
+         class="admin-settings">
+      <div fxFlex
+           fxLayout="column"
+           fxLayoutGap="32px">
+        <div fxLayout="row"
+             fxLayoutAlign=" center">
+          <div fxFlex="16%"
+               fxLayoutAlign=" center"
+               class="entry-label">
+            <span>OpenStack - Custom Disk</span>
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Used to enforce custom disks for OpenStack machines."></div>
+          </div>
+          <div fxFlexAlign=" center"
+               fxLayout="row">
+            <mat-checkbox [(ngModel)]="settings.providerConfiguration.openStack.enforceCustomDisk"
+                          (change)="onSettingsChange()"
+                          id="km-openstack-enforce-custom-disk"
+                          fxFlexAlign=" center">Enforce Default
+            </mat-checkbox>
+            <km-spinner-with-confirmation [isSaved]="isEqual(settings.providerConfiguration.openStack.enforceCustomDisk, apiSettings.providerConfiguration.openStack.enforceCustomDisk)" />
+          </div>
+        </div>
+      </div>
+      <div fxLayout="row"
+           fxLayoutAlign=" center">
+        <div class="entry-label-vcd">
+          <span>VMware Cloud Director - Allowed IP Allocation Modes</span>
+          <div class="km-icon-info km-pointer"
+               matTooltip="Used to configure allowed IP address allocation modes for VMware Cloud Director VMs.  If not set, all modes are allowed."></div>
+        </div>
+        <mat-form-field fxFlex>
+          <mat-label>IP Allocation Mode</mat-label>
+          <mat-select [(ngModel)]="settings.providerConfiguration.vmwareCloudDirector.ipAllocationModes"
+                      (selectionChange)="onIPAllocationModeChange($event.value)"
+                      multiple
+                      disableOptionCentering
+                      kmValueChangedIndicator>
+            @for (mode of ipAllocationModes; track mode) {
+            <mat-option [value]="mode"> {{mode}} </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <km-spinner-with-confirmation [isSaved]="isEqual(settings.providerConfiguration.vmwareCloudDirector.ipAllocationModes, apiSettings.providerConfiguration.vmwareCloudDirector.ipAllocationModes)" />
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>

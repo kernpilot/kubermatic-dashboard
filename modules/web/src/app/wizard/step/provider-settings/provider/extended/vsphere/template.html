@@ -1,0 +1,121 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<form [formGroup]="form"
+      fxLayout="column"
+      fxLayoutGap="8px">
+  <km-combobox #networkCombobox
+               [grouped]="true"
+               [isDisabled]="isPresetSelected"
+               [groups]="networkTypes"
+               [multiple]="true"
+               [optionsGetter]="getNetworks.bind(this)"
+               [formControlName]="Controls.Networks"
+               [hint]="getHint(Controls.Networks)"
+               (changed)="onNetworkChange($event)"
+               [label]="networkLabel"
+               inputLabel="Select networks..."
+               filterBy="absolutePath">
+    <div *option="let network">{{network.relativePath}}</div>
+  </km-combobox>
+
+  <km-combobox #folderCombobox
+               [grouped]="false"
+               [isDisabled]="isPresetSelected"
+               [options]="folders"
+               [formControlName]="Controls.Folder"
+               [hint]="getHint(Controls.Folder)"
+               (changed)="onFolderChange($event)"
+               [label]="folderLabel"
+               inputLabel="Select folder..."
+               filterBy="path">
+    <div *option="let folder">{{folder.path}}</div>
+  </km-combobox>
+
+  <mat-form-field subscriptSizing="dynamic">
+    <mat-label>Base Folder Path</mat-label>
+    <input matInput
+           [formControlName]="Controls.BaseFolderPath"
+           [name]="Controls.BaseFolderPath"
+           type="text"
+           autocomplete="off" />
+    <mat-hint>Base folder path configures a vCenter folder path where KKP will
+      create an individual cluster folder. If the value is a relative path, it’s
+      appended to root path (results in <code>/&lt;root path&gt;/&lt;base path&gt;/&lt;cluster
+        folder to be created&gt;</code>). If it’s an absolute path it ignores the
+      root path (<code>/&lt;base path&gt;/&lt;cluster folder to be created&gt;</code>).
+    </mat-hint>
+  </mat-form-field>
+
+  <km-autocomplete label="Datastore"
+                   [formControlName]="Controls.Datastore"
+                   [isLoading]="isLoadingDatastores"
+                   [options]="datastores">
+    <ng-container hint>Datastore to be used for storing virtual machines and as
+      a default for dynamic volume provisioning. It is mutually exclusive with
+      Datastore Cluster field.@if (!hasRequiredCredentials()) {
+      <span>&nbsp;Enter
+        your credentials to load autocompletions.</span>
+      }
+    </ng-container>
+  </km-autocomplete>
+
+  <mat-form-field fxFlex>
+    <mat-label>Datastore Cluster</mat-label>
+    <input matInput
+           [formControlName]="Controls.DatastoreCluster"
+           [name]="Controls.DatastoreCluster"
+           type="text"
+           autocomplete="off" />
+    <mat-hint>DatastoreCluster to be used for storing virtual machines. It is mutually exclusive with Datastore field.</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field fxFlex>
+    <mat-label>Resource Pool</mat-label>
+    <input matInput
+           [formControlName]="Controls.ResourcePool"
+           [name]="Controls.ResourcePool"
+           type="text"
+           autocomplete="off" />
+  </mat-form-field>
+
+  <mat-card-header class="km-no-padding">
+    <mat-card-title>Cluster Tags
+      <i class="km-icon-info km-pointer km-no-margin"
+         matTooltip="Cluster tags are used to create tags against pre-existing tag category at the cluster level. These tags can then be attached to the machine deployments. These tags are automatically attached to vSphere folders created by KKP."></i>
+    </mat-card-title>
+  </mat-card-header>
+
+  <km-combobox #tagCategoryComboBox
+               [grouped]="false"
+               [options]="tagCategories"
+               [formControlName]="Controls.TagCategory"
+               [hint]="getHint(Controls.TagCategory)"
+               (changed)="onTagCategoryChange($event)"
+               [label]="tagCategoryLabel"
+               inputLabel="Select Tag Category..."
+               filterBy="name">
+    <div *option="let category">{{category.name}}</div>
+  </km-combobox>
+  <km-chip-autocomplete [formControlName]="Controls.Tags"
+                        label="Tags"
+                        placeholder="Add tags..."
+                        [disabled]="form.get(Controls.Tags).disabled"
+                        [required]="!!form.get(Controls.TagCategory).value"
+                        [patternError]="tagValuesPatternError"
+                        [pattern]="tagValuesPattern"
+                        [tags]="predefinedTagList"
+                        (onChange)="onTagValuesChange($event)" />
+</form>

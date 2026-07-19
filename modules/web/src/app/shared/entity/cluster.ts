@@ -1,0 +1,738 @@
+// Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import {Application} from '@shared/entity/application';
+import {BackupStorageLocationSpec} from '@shared/entity/backup';
+import {MachineDeployment} from '@shared/entity/machine-deployment';
+import {OpenstackLoadBalancerClass} from '@shared/entity/provider/openstack';
+import {isObjectEmpty} from '@shared/utils/common';
+import _ from 'lodash';
+
+export enum Provider {
+  Alibaba = 'alibaba',
+  Anexia = 'anexia',
+  AWS = 'aws',
+  Azure = 'azure',
+  Baremetal = 'baremetal',
+  kubeAdm = 'bringyourown',
+  Digitalocean = 'digitalocean',
+  Edge = 'edge',
+  GCP = 'gcp',
+  Hetzner = 'hetzner',
+  KubeVirt = 'kubevirt',
+  Nutanix = 'nutanix',
+  OpenStack = 'openstack',
+  VSphere = 'vsphere',
+  VMwareCloudDirector = 'vmwareclouddirector',
+}
+
+const PROVIDER_DISPLAY_NAMES = new Map<Provider, string>([
+  [Provider.Alibaba, 'Alibaba'],
+  [Provider.Anexia, 'Anexia'],
+  [Provider.AWS, 'AWS'],
+  [Provider.Azure, 'Azure'],
+  [Provider.Baremetal, 'Baremetal'],
+  [Provider.kubeAdm, 'kubeAdm'],
+  [Provider.Digitalocean, 'DigitalOcean'],
+  [Provider.Edge, 'Edge'],
+  [Provider.GCP, 'Google Cloud'],
+  [Provider.Hetzner, 'Hetzner'],
+  [Provider.KubeVirt, 'KubeVirt'],
+  [Provider.Nutanix, 'Nutanix'],
+  [Provider.OpenStack, 'Openstack'],
+  [Provider.VSphere, 'VSphere'],
+  [Provider.VMwareCloudDirector, 'VMware Cloud Director'],
+]);
+
+// Internal annotation used by KKP for system-level configuration.
+export enum InternalClusterSpecAnnotations {
+  SkipRouterReconciliation = 'reconciliation.kubermatic.k8c.io/skip-router',
+}
+
+export function getProviderDisplayName(provider: Provider): string {
+  return PROVIDER_DISPLAY_NAMES.get(provider);
+}
+
+export const enum Finalizer {
+  DeleteVolumes = 'DeleteVolumes',
+  DeleteLoadBalancers = 'DeleteLoadBalancers',
+}
+
+export enum ContainerRuntime {
+  Containerd = 'containerd',
+  Docker = 'docker',
+}
+
+export class Cluster {
+  creationTimestamp?: Date;
+  deletionTimestamp?: Date;
+  id?: string;
+  name: string;
+  spec: ClusterSpec;
+  status?: Status;
+  labels?: Record<string, string>;
+  inheritedLabels?: object;
+  credential?: string;
+  machineDeploymentCount?: number;
+  annotations?: Record<string, string>;
+
+  static isDualStackNetworkSelected(cluster: Cluster) {
+    return cluster?.spec.clusterNetwork?.ipFamily === IPFamily.DualStack;
+  }
+
+  static getProvider(cluster: Cluster): Provider {
+    return Object.values(Provider)
+      .filter(provider => cluster.spec.cloud[provider])
+      .pop();
+  }
+
+  static getProviderDisplayName(cluster: Cluster): string {
+    return getProviderDisplayName(Cluster.getProvider(cluster));
+  }
+
+  static newEmptyClusterEntity(): Cluster {
+    return {
+      spec: {
+        cloud: {} as CloudSpec,
+      } as ClusterSpec,
+    } as Cluster;
+  }
+}
+
+export class CloudSpec {
+  dc: string;
+  providerName: string;
+  digitalocean?: DigitaloceanCloudSpec;
+  aws?: AWSCloudSpec;
+  bringyourown?: BringYourOwnCloudSpec;
+  openstack?: OpenstackCloudSpec;
+
+  vsphere?: VSphereCloudSpec;
+  hetzner?: HetznerCloudSpec;
+  azure?: AzureCloudSpec;
+  fake?: FakeCloudSpec;
+  gcp?: GCPCloudSpec;
+  kubevirt?: KubeVirtCloudSpec;
+  nutanix?: NutanixCloudSpec;
+  alibaba?: AlibabaCloudSpec;
+  anexia?: AnexiaCloudSpec;
+  vmwareclouddirector?: VMwareCloudDirectorCloudSpec;
+  edge?: EdgeCloudSpec;
+  baremetal?: BaremetalCloudSpec;
+}
+
+export class ExtraCloudSpecOptions {
+  constructor(public nodePortsAllowedIPRanges?: NetworkRanges) {}
+
+  static new(spec: AWSCloudSpec | GCPCloudSpec | AzureCloudSpec | OpenstackCloudSpec): ExtraCloudSpecOptions {
+    return new ExtraCloudSpecOptions(spec.nodePortsAllowedIPRanges);
+  }
+}
+
+export class AlibabaCloudSpec {
+  accessKeyID: string;
+  accessKeySecret: string;
+}
+
+export class AWSCloudSpec extends ExtraCloudSpecOptions {
+  accessKeyID: string;
+  secretAccessKey: string;
+  assumeRoleARN: string;
+  assumeRoleExternalID: string;
+  vpcID: string;
+  routeTableID: string;
+  securityGroupID: string;
+  instanceProfileName: string;
+  roleARN: string;
+
+  static isEmpty(spec: AWSCloudSpec): boolean {
+    return _.difference(Object.keys(spec), Object.keys(ExtraCloudSpecOptions.new(spec))).every(key => !spec[key]);
+  }
+}
+
+export class AzureCloudSpec extends ExtraCloudSpecOptions {
+  clientID: string;
+  clientSecret: string;
+  resourceGroup: string;
+  vnetResourceGroup: string;
+  routeTable: string;
+  securityGroup: string;
+  subnet: string;
+  subscriptionID: string;
+  tenantID: string;
+  vnet: string;
+  loadBalancerSKU: string;
+  assignAvailabilitySet: boolean;
+
+  static isEmpty(spec: AzureCloudSpec): boolean {
+    const optionalFields = ['assignAvailabilitySet'];
+    return _.difference(Object.keys(spec), [...Object.keys(ExtraCloudSpecOptions.new(spec)), ...optionalFields]).every(
+      key => !spec[key]
+    );
+  }
+}
+
+export class BringYourOwnCloudSpec {}
+
+export class DigitaloceanCloudSpec {
+  token: string;
+}
+
+export class AnexiaCloudSpec {
+  token: string;
+}
+
+export class FakeCloudSpec {
+  token: string;
+}
+
+export class GCPCloudSpec extends ExtraCloudSpecOptions {
+  network: string;
+  serviceAccount: string;
+  subnetwork: string;
+
+  static isEmpty(spec: GCPCloudSpec): boolean {
+    return _.difference(Object.keys(spec), Object.keys(ExtraCloudSpecOptions.new(spec))).every(key => !spec[key]);
+  }
+}
+
+export class HetznerCloudSpec {
+  token: string;
+  network?: string;
+}
+
+export class KubeVirtCloudSpec {
+  kubeconfig: string;
+  vpcName?: string;
+  preAllocatedDataVolumes: KubeVirtPreAllocatedDataVolume[];
+}
+
+export class KubeVirtPreAllocatedDataVolume {
+  name: string;
+  size: string;
+  storageClass: string;
+  url: string;
+}
+
+export class NutanixCloudSpec {
+  clusterName: string;
+  projectName?: string;
+  proxyURL?: string;
+  username?: string;
+  password?: string;
+  csi?: NutanixCSIConfig;
+
+  // Following check skips storage class settings to allow using them and preset at the same time.
+  // See also: NutanixProviderExtendedComponent._alwaysEnabledControls
+  static isEmpty(spec: NutanixCloudSpec): boolean {
+    return (
+      isObjectEmpty(_.omitBy(spec, (_, key) => key === 'csi')) &&
+      isObjectEmpty(_.omitBy(spec.csi, (_, key) => key === 'fstype' || key === 'storageContainer'))
+    );
+  }
+}
+
+export class NutanixCSIConfig {
+  username: string;
+  password: string;
+  endpoint: string;
+  port?: number;
+  storageContainer?: string;
+  fstype?: string;
+  ssSegmentedIscsiNetwork?: boolean;
+}
+
+export class OpenstackCloudSpec extends ExtraCloudSpecOptions {
+  useToken?: boolean;
+  applicationCredentialID?: string;
+  applicationCredentialSecret?: string;
+  username: string;
+  password: string;
+  project: string;
+  projectID: string;
+  domain: string;
+  network: string;
+  securityGroups: string;
+  floatingIPPool: string;
+  subnetID: string;
+  ipv6SubnetID: string;
+  ipv6SubnetPool: string;
+  enableIngressHostname?: boolean;
+  ingressHostnameSuffix?: string;
+  loadBalancerClasses?: OpenstackLoadBalancerClass[];
+
+  static isEmpty(spec: OpenstackCloudSpec): boolean {
+    return _.difference(
+      OpenstackCloudSpec.getKeysToCompare(spec),
+      OpenstackCloudSpec.getKeysToCompare(ExtraCloudSpecOptions.new(spec))
+    ).every(key => !spec[key]);
+  }
+
+  private static getKeysToCompare(spec: ExtraCloudSpecOptions): string[] {
+    return Object.keys(spec).filter(
+      key => key !== 'enableIngressHostname' && key !== 'ingressHostnameSuffix' && key !== 'loadBalancerClasses'
+    );
+  }
+}
+
+export class VSphereCloudSpec {
+  username: string;
+  password: string;
+  vmNetName?: string;
+  networks?: string[];
+  folder?: string;
+  basePath?: string;
+  infraManagementUser: VSphereInfraManagementUser;
+  datastore?: string;
+  datastoreCluster?: string;
+  resourcePool?: string;
+  tags?: VSphereTags;
+}
+
+export class VSphereInfraManagementUser {
+  username: string;
+  password: string;
+}
+
+export class VSphereTags {
+  tags: string[];
+  categoryID: string;
+}
+
+export class VMwareCloudDirectorCloudSpec {
+  username: string;
+  password: string;
+  apiToken: string;
+  organization: string;
+  vdc: string;
+  ovdcNetwork?: string;
+  ovdcNetworks?: string[];
+  vapp?: string;
+  csi: VMwareCloudDirectorCSIConfig;
+
+  // Following check skips storage class settings to allow using them and preset at the same time.
+  static isEmpty(spec: VMwareCloudDirectorCloudSpec): boolean {
+    return (
+      isObjectEmpty(_.omitBy(spec, (_, key) => key === 'csi')) &&
+      isObjectEmpty(_.omitBy(spec.csi, (_, key) => key === 'filesystem' || key === 'storageProfile'))
+    );
+  }
+}
+
+export class VMwareCloudDirectorCSIConfig {
+  storageProfile: string;
+  filesystem: string;
+}
+
+export class EdgeCloudSpec {}
+
+export class BaremetalCloudSpec {
+  tinkerbell: BaremetalTinkerbellCloudSpec;
+}
+
+export class BaremetalTinkerbellCloudSpec {
+  kubeconfig: string;
+}
+
+export class ClusterSpec {
+  cloud: CloudSpec;
+  machineNetworks?: MachineNetwork[];
+  auditLogging?: AuditLoggingSettings;
+  opaIntegration?: OPAIntegration;
+  kyverno?: KyvernoIntegration;
+  kubernetesDashboard?: KubernetesDashboard;
+  version?: string;
+  usePodSecurityPolicyAdmissionPlugin?: boolean;
+  usePodNodeSelectorAdmissionPlugin?: boolean;
+  useEventRateLimitAdmissionPlugin?: boolean;
+  eventRateLimitConfig?: EventRateLimitConfig;
+  admissionPlugins?: string[];
+  enableUserSSHKeyAgent?: boolean;
+  podNodeSelectorAdmissionPluginConfig?: Record<string, string>;
+  backupConfig?: BackupConfig;
+  mla?: MLASettings;
+  containerRuntime?: ContainerRuntime;
+  clusterNetwork?: ClusterNetwork;
+  cniPlugin?: CNIPluginConfig;
+  apiServerAllowedIPRanges?: NetworkRanges;
+  exposeStrategy?: ExposeStrategy;
+  kubelb?: KubeLB;
+  disableCsiDriver?: boolean;
+  encryptionConfiguration?: EncryptionConfiguration;
+}
+
+export class KubeLB {
+  enabled: boolean;
+  useLoadBalancerClass?: boolean;
+  enableGatewayAPI?: boolean;
+}
+
+export class EventRateLimitConfig {
+  namespace?: EventRateLimitConfigItem;
+  server?: EventRateLimitConfigItem;
+  user?: EventRateLimitConfigItem;
+  sourceAndObject?: EventRateLimitConfigItem;
+}
+
+export class EventRateLimitConfigItem {
+  qps: number;
+  burst: number;
+  cacheSize: number;
+  limitType: string;
+}
+
+export interface GlobalEventRateLimitPluginConfiguration {
+  enabled?: boolean;
+  enforced?: boolean;
+  defaultConfig?: EventRateLimitConfig;
+}
+
+export interface GlobalAdmissionPluginsConfiguration {
+  eventRateLimit?: GlobalEventRateLimitPluginConfiguration;
+}
+
+export class ClusterNetwork {
+  ipFamily?: string;
+  pods?: NetworkRanges;
+  proxyMode?: ProxyMode;
+  services?: NetworkRanges;
+  nodeCidrMaskSizeIPv4?: number;
+  nodeCidrMaskSizeIPv6?: number;
+  nodeLocalDNSCacheEnabled?: boolean;
+  konnectivityEnabled?: boolean;
+  tunnelingAgentIP?: string;
+}
+
+export class CNIPluginConfig {
+  type: string;
+  version: string;
+}
+
+export class NetworkRanges {
+  cidrBlocks: string[];
+
+  static ipv4CIDR(networkRange: NetworkRanges): string {
+    return networkRange?.cidrBlocks?.length ? networkRange.cidrBlocks[0] : null;
+  }
+
+  static ipv6CIDR(networkRange: NetworkRanges): string {
+    return networkRange?.cidrBlocks?.length > 1 ? networkRange.cidrBlocks[1] : null;
+  }
+}
+
+export class CNIPluginVersions {
+  cniPluginType: string;
+  cniDefaultVersion: string;
+  versions: string[];
+}
+
+export enum ClusterAnnotation {
+  InitialCNIValuesRequest = 'kubermatic.io/initial-cni-values-request',
+}
+
+export enum ProxyMode {
+  ipvs = 'ipvs',
+  iptables = 'iptables',
+  ebpf = 'ebpf',
+  nftables = 'nftables',
+}
+
+export enum ExposeStrategy {
+  nodePort = 'NodePort',
+  loadbalancer = 'LoadBalancer',
+  tunneling = 'Tunneling',
+}
+
+export enum CNIPlugin {
+  Canal = 'canal',
+  Cilium = 'cilium',
+  None = 'none',
+}
+
+export enum IPFamily {
+  IPv4 = 'IPv4',
+  DualStack = 'IPv4+IPv6',
+}
+
+export enum AuditPolicyPreset {
+  Custom = '',
+  Metadata = 'metadata',
+  Recommended = 'recommended',
+  Minimal = 'minimal',
+}
+
+export class AuditLoggingSettings {
+  enabled?: boolean;
+  policyPreset?: AuditPolicyPreset;
+  webhookBackend?: AuditLoggingWebhookBackend;
+}
+
+export class AuditLoggingWebhookBackend {
+  auditWebhookInitialBackoff?: string;
+  auditWebhookConfig: AuditLoggingWebhookSecretRef;
+}
+
+export class AuditLoggingWebhookSecretRef {
+  name: string;
+  namespace: string;
+}
+
+export class KubernetesDashboard {
+  enabled?: boolean;
+}
+
+export class EncryptionConfiguration {
+  enabled?: boolean;
+  resources?: string[];
+}
+
+export class OPAIntegration {
+  enabled: boolean;
+}
+
+export class KyvernoIntegration {
+  enabled: boolean;
+}
+export class MachineNetwork {
+  cidr: string;
+  dnsServers: string[];
+  gateway: string;
+}
+
+export class MLASettings {
+  loggingEnabled?: boolean;
+  monitoringEnabled?: boolean;
+}
+
+export class BackupConfig {
+  backupStorageLocation: {
+    name: string;
+  };
+}
+
+export interface EncryptionStatus {
+  phase: string;
+}
+
+export class Status {
+  url: string;
+  version: string;
+  externalCCMMigration: ExternalCCMMigrationStatus;
+  encryption?: EncryptionStatus;
+}
+
+export enum ExternalCCMMigrationStatus {
+  NotNeeded = 'NotNeeded',
+  Supported = 'Supported',
+  Unsupported = 'Unsupported',
+  InProgress = 'InProgress',
+}
+
+export function getExternalCCMMigrationStatusMessage(status: ExternalCCMMigrationStatus): string {
+  switch (status) {
+    case ExternalCCMMigrationStatus.InProgress:
+      return 'Migration procedure to the external CCM is in progress.';
+    case ExternalCCMMigrationStatus.NotNeeded:
+      return 'External CCM is already in use.';
+    case ExternalCCMMigrationStatus.Supported:
+      return 'External CCM is not used but supported. Click here to start migration.';
+    case ExternalCCMMigrationStatus.Unsupported:
+      return 'External CCM is not used and not supported.';
+    default:
+      return '';
+  }
+}
+
+export class MasterVersion {
+  version: string;
+  default?: boolean;
+  restrictedByKubeletVersion?: boolean;
+}
+
+export class Token {
+  token: string;
+}
+
+export class ClusterPatch {
+  id?: string;
+  name?: string;
+  labels?: object;
+  annotations?: Record<string, string>;
+  spec?: ClusterSpecPatch;
+}
+
+export class ClusterSpecPatch {
+  cloud?: CloudSpecPatch;
+  version?: string;
+  usePodSecurityPolicyAdmissionPlugin?: boolean;
+  usePodNodeSelectorAdmissionPlugin?: boolean;
+  useEventRateLimitAdmissionPlugin?: boolean;
+  eventRateLimitConfig?: EventRateLimitConfig;
+  admissionPlugins?: string[];
+  opaIntegration?: OPAIntegration;
+  kyverno?: KyvernoIntegration;
+  clusterNetwork?: ClusterNetwork;
+  kubernetesDashboard?: KubernetesDashboard;
+  disableCsiDriver?: boolean;
+  backupConfig?: BackupConfig;
+  podNodeSelectorAdmissionPluginConfig?: Record<string, string>;
+  auditLogging?: AuditLoggingSettings;
+  machineNetworks?: MachineNetwork[];
+  mla?: MLASettings;
+  containerRuntime?: ContainerRuntime;
+  cniPlugin?: CNIPluginConfigPatch;
+  apiServerAllowedIPRanges?: NetworkRanges;
+  encryptionConfiguration?: EncryptionConfiguration;
+}
+
+export class CNIPluginConfigPatch {
+  version: string;
+}
+
+export class CloudSpecPatch {
+  anexia?: AnexiaCloudSpecPatch;
+  digitalocean?: DigitaloceanCloudSpecPatch;
+  nutanix?: NutanixCloudSpecPatch;
+  aws?: AWSCloudSpecPatch;
+  openstack?: OpenstackCloudSpecPatch;
+
+  vsphere?: VSphereCloudSpecPatch;
+  hetzner?: HetznerCloudSpecPatch;
+  azure?: AzureCloudSpecPatch;
+  gcp?: GCPCloudSpecPatch;
+  kubevirt?: KubevirtCloudSpecPatch;
+  alibaba?: AlibabaCloudSpecPatch;
+  vmwareclouddirector?: VMwareCloudDirectorCloudSpecPatch;
+  baremetal?: BaremetalCloudSpecPatch;
+}
+
+export class AnexiaCloudSpecPatch {
+  token?: string;
+}
+
+export class DigitaloceanCloudSpecPatch {
+  token?: string;
+}
+
+export class GCPCloudSpecPatch {
+  serviceAccount?: string;
+}
+
+export class OpenstackCloudSpecPatch {
+  username?: string;
+  password?: string;
+  project?: string;
+  projectID?: string;
+  applicationCredentialID?: string;
+  applicationCredentialSecret?: string;
+  domain?: string;
+}
+
+export class NutanixCloudSpecPatch {
+  username: string;
+  password: string;
+  proxyURL?: string;
+  clusterName?: string;
+  projectName?: string;
+}
+
+export class HetznerCloudSpecPatch {
+  token?: string;
+}
+
+export class AWSCloudSpecPatch {
+  accessKeyID?: string;
+  secretAccessKey?: string;
+}
+
+export class AzureCloudSpecPatch {
+  clientID?: string;
+  clientSecret?: string;
+  subscriptionID?: string;
+  tenantID?: string;
+}
+
+export class VSphereCloudSpecPatch {
+  username?: string;
+  password?: string;
+  infraManagementUser?: VSphereInfraManagementUserPatch;
+}
+
+export class VSphereInfraManagementUserPatch {
+  username?: string;
+  password?: string;
+}
+
+export class KubevirtCloudSpecPatch {
+  kubeconfig?: string;
+}
+
+export class AlibabaCloudSpecPatch {
+  accessKeyID?: string;
+  accessKeySecret?: string;
+}
+
+export class VMwareCloudDirectorCloudSpecPatch {
+  username: string;
+  password: string;
+  apiToken: string;
+  organization: string;
+  vdc: string;
+  ovdcNetwork?: string;
+  ovdcNetworks?: string[];
+}
+
+export class BaremetalCloudSpecPatch {
+  tinkerbell: BaremetalTinkerbellCloudSpecPatch;
+}
+
+export class BaremetalTinkerbellCloudSpecPatch {
+  kubeconfig?: string;
+}
+
+export class ProviderSettingsPatch {
+  cloudSpecPatch: CloudSpecPatch;
+  isValid: boolean;
+}
+
+export const AZURE_LOADBALANCER_SKUS = ['standard'];
+
+export interface EncryptionAtRestConfig {
+  key: string;
+}
+
+export class CreateClusterModel {
+  cluster: ClusterModel;
+  nodeDeployment?: MachineDeployment;
+  applications?: Application[];
+  encryptionAtRest?: EncryptionAtRestConfig;
+}
+
+class ClusterModel {
+  name: string;
+  spec: ClusterSpec;
+  labels?: object;
+  credential?: string;
+  annotations?: Record<string, string>;
+}
+
+export class ProjectClusterList {
+  clusters: Cluster[];
+  errorMessage: string;
+}
+
+export class CreateClusterBackupStorageLocation {
+  cbslName: string;
+  bslSpec: BackupStorageLocationSpec;
+}

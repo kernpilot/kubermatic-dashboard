@@ -1,0 +1,35 @@
+{
+  "extends": "./node_modules/gts/tsconfig-google.json",
+  "compileOnSave": false,
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "dist/out-tsc/app",
+    "baseUrl": "src",
+    "paths": {
+      "@app/*": ["app/*"],
+      "@core/*": ["app/core/*"],
+      "@shared/*": ["app/shared/*"],
+      "@dynamic/*": ["app/dynamic/*"],
+      "@assets/*": ["assets/*"],
+      "@environments/*": ["environments/*"],
+      "@test/*": ["test/*"],
+      "app/*": ["app/*"]
+    },
+    "moduleResolution": "Node",
+    "module": "ES2020",
+    "target": "ES2022",
+    "strict": false,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "lib": ["ES2020", "dom"],
+    "useDefineForClassFields": false
+  }
+}

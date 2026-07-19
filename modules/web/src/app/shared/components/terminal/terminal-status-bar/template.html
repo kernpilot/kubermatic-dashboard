@@ -1,0 +1,82 @@
+<!--
+Copyright 2022 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div class="toolbar-status-container">
+  <div fxFlex
+       fxLayout="row"
+       fxLayoutAlign="start center">
+    <div>
+      <i class="km-icon-warning"></i>
+    </div>
+    <div>
+      @switch (sessionState) {
+      @case (terminalState.Expired) {
+      <p>
+        Session expired. Authenticate again and wait a few seconds for the new kubeconfig to mount.
+      </p>
+      }
+      @case (terminalState.ConnectionLost) {
+      <p>
+        The connection to your Web Terminal was lost.
+      </p>
+      }
+      @case (terminalState.Expiring) {
+      <p>
+        The web session will expire soon.
+      </p>
+      }
+      }
+    </div>
+  </div>
+
+  <div fxFlex
+       fxLayout="row"
+       fxLayoutAlign="end center"
+       fxLayoutGap="10px">
+    @switch (sessionState) {
+    @case ('expired') {
+    <button mat-flat-button
+            class="button-border-box"
+            matTooltip="Authenticate again to regain access"
+            (click)="onTokenExpired()">
+      <i class="km-icon-mask km-icon-reconnect"
+         matButtonIcon></i>
+      <span>Authenticate</span>
+    </button>
+    }
+    @case ('connectionLost') {
+    <button mat-flat-button
+            class="button-border-box"
+            matTooltip="Gain lost connection to terminal"
+            (click)="onReconnect()">
+      <i class="km-icon-mask km-icon-reconnect"
+         matButtonIcon></i>
+      <span>Reconnect</span>
+    </button>
+    }
+    @case ('expiring') {
+    <button mat-flat-button
+            class="button-border-box"
+            matTooltip="Retain current session to terminal"
+            (click)="onExtendSession()">
+      <i class="km-icon-mask km-icon-clock"
+         matButtonIcon></i>
+      <span>Extend Session</span>
+    </button>
+    }
+    }
+  </div>
+</div>

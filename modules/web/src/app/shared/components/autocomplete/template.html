@@ -1,0 +1,86 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<form [formGroup]="form">
+  <mat-form-field fxFlex
+                  [ngClass]="{'km-pointer': options}">
+    <mat-label>{{label}}</mat-label>
+    <input type="text"
+           matInput
+           [formControlName]="controls.Main"
+           [required]="required"
+           [matAutocomplete]="auto"
+           kmValueChangedIndicator>
+    @if (isLoading && !form.disabled) {
+    <mat-spinner matSuffix
+                 [diameter]="20" />
+    }
+    @if (!isLoading && options?.length) {
+    <button mat-icon-button
+            [disabled]="disabled"
+            matSuffix
+            fxLayout="row"
+            fxLayoutAlign="center center"
+            disableRipple>
+      <i class="km-icon-mask i-14"
+         [ngClass]="isDropdownOpen ? 'km-icon-arrow-up' : 'km-icon-arrow-down'"></i>
+    </button>
+    }
+    <mat-autocomplete #auto="matAutocomplete"
+                      (opened)="onDropdownOpened()"
+                      (closed)="onDropdownClosed()">
+      <input name="search"
+             class="search-input"
+             placeholder="Search..."
+             type="text"
+             autocomplete="off"
+             [(ngModel)]="search"
+             [ngModelOptions]="{standalone: true}"
+             kmAutofocus>
+      @if (options | filterBy: search; as filteredOptions) {
+      @if (options?.length && !filteredOptions?.length) {
+      <mat-option [disabled]="true">No options available</mat-option>
+      }
+      @for (option of filteredOptions; track option) {
+      <mat-option [value]="option">
+        {{ option }}
+      </mat-option>
+      }
+      }
+    </mat-autocomplete>
+    <mat-hint>
+      <ng-content select="[hint]" />
+    </mat-hint>
+
+    <!-- Errors -->
+    @if (form.get(controls.Main).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+
+    @if (form.get(controls.Main).hasError('pattern')) {
+    <mat-error>
+      <span #patternRef>
+        <ng-content select="[patternError]" />
+      </span>
+      @if (!patternRef.innerHTML.trim()) {
+      <span>{{label}} has invalid pattern.</span>
+      }
+    </mat-error>
+    }
+  </mat-form-field>
+</form>

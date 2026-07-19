@@ -1,0 +1,13 @@
+_build/*
+.angular/*
+.husky/*
+.idea/*
+.vscode/*
+cmd/*
+containers/*
+dist/*
+hack/*
+vendor/*
+node_modules/*
+src/environments/*
+src/app/dynamic/module-registry.ce.ts

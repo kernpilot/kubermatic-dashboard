@@ -1,0 +1,120 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<form [formGroup]="form"
+      fxLayout="column"
+      fxLayoutGap="8px">
+  <mat-form-field>
+    <mat-label>LoadBalancer SKU</mat-label>
+    <mat-select [formControlName]="Controls.LoadBalancerSKU"
+                disableOptionCentering>
+      @for (loadBalancerSKU of loadBalancerSKUs; track loadBalancerSKU) {
+      <mat-option [value]="loadBalancerSKU">
+        {{loadBalancerSKU}}
+      </mat-option>
+      }
+      <mat-select-trigger fxFlex
+                          fxLayout="row">
+        <div fxFlex
+             fxLayoutAlign="start">
+          {{selectedLoadBalancerSKU}}
+        </div>
+
+        <div fxFlex
+             fxLayoutAlign="end"
+             class="km-select-trigger-button-wrapper">
+          @if (selectedLoadBalancerSKU) {
+          <button (click)="clearLoadBalancerSKU(); $event.stopPropagation()"
+                  matSuffix
+                  mat-icon-button
+                  aria-label="Clear">
+            <i class="km-icon-mask km-icon-remove"></i>
+          </button>
+          }
+        </div>
+      </mat-select-trigger>
+    </mat-select>
+    <mat-hint>If not specified default SKU "standard" will be used.</mat-hint>
+  </mat-form-field>
+  <km-autocomplete label="Resource Group"
+                   [formControlName]="Controls.ResourceGroup"
+                   [isLoading]="isLoadingResourceGroups"
+                   [options]="resourceGroups">
+    @if (!hasRequiredCredentials()) {
+    <ng-container hint>
+      Enter your credentials to load autocompletions.
+    </ng-container>
+    }
+  </km-autocomplete>
+  <km-autocomplete label="VNet Resource Group"
+                   [formControlName]="Controls.VNetResourceGroup"
+                   [isLoading]="isLoadingResourceGroups"
+                   [options]="resourceGroups">
+    @if (!hasRequiredCredentials()) {
+    <ng-container hint>
+      Enter your credentials to load autocompletions.
+    </ng-container>
+    }
+  </km-autocomplete>
+  <km-autocomplete label="Route Table"
+                   [formControlName]="Controls.RouteTable"
+                   [isLoading]="isLoadingRouteTables"
+                   [options]="routeTables">
+    @if (!hasRequiredCredentials() || !getValueFromInternalForm(Controls.ResourceGroup)) {
+    <ng-container hint>
+      Enter your credentials and resource group to load autocompletions.
+    </ng-container>
+    }
+  </km-autocomplete>
+  <km-autocomplete label="Security Group"
+                   [formControlName]="Controls.SecurityGroup"
+                   [isLoading]="isLoadingSecurityGroups"
+                   [options]="securityGroups">
+    @if (!hasRequiredCredentials() || !getValueFromInternalForm(Controls.ResourceGroup)) {
+    <ng-container hint>
+      Enter your credentials and resource group to load autocompletions.
+    </ng-container>
+    }
+  </km-autocomplete>
+  <km-autocomplete label="VNet"
+                   [formControlName]="Controls.VNet"
+                   [isLoading]="isLoadingVnets"
+                   [options]="vnets">
+    @if (!hasRequiredCredentials() || !getValueFromInternalForm(Controls.ResourceGroup)) {
+    <ng-container hint>
+      Enter your credentials and resource group to load autocompletions.
+    </ng-container>
+    }
+  </km-autocomplete>
+  <km-autocomplete label="Subnet"
+                   [formControlName]="Controls.Subnet"
+                   [isLoading]="isLoadingSubnets"
+                   [options]="subnets">
+    @if (!hasRequiredCredentials() || !getValueFromInternalForm(Controls.ResourceGroup) || !getValueFromInternalForm(Controls.VNet)) {
+    <ng-container hint>
+      Enter your credentials, resource group and VNet to load autocompletions.
+    </ng-container>
+    }
+  </km-autocomplete>
+  <mat-checkbox [formControlName]="Controls.AssignAvailabilitySet"
+                [name]="Controls.AssignAvailabilitySet">
+    <div fxLayoutGap="8px"
+         fxLayoutAlign=" center">
+      <span>Assign Availability Set</span>
+      <i class="km-pointer km-icon-info"
+         matTooltip="Enable to create availability set and assign worker machines to it."></i>
+    </div>
+  </mat-checkbox>
+</form>

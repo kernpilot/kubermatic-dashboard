@@ -1,0 +1,76 @@
+<!--
+Copyright 2022 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<form [formGroup]="form"
+      fxLayout="column"
+      fxLayoutGap="8px">
+  <km-combobox [isDisabled]="isPresetSelected"
+               [options]="networks"
+               [multiple]="true"
+               [selected]="selectedNetworks"
+               [hint]="getHint(Controls.OvdcNetworks)"
+               [formControlName]="Controls.OvdcNetworks"
+               (changed)="onNetworkChange($event)"
+               [label]="networkLabel"
+               inputLabel="Select organization VDC networks..."
+               filterBy="name"
+               required>
+    <div *option="let network">{{network.name}}</div>
+    <ng-container hint>
+      @if (!isPresetSelected) {
+      <span>
+        Select one or more organization VDC networks to be used for the cluster.
+      </span>
+      }
+      @if (isPresetSelected) {
+      <span>
+        The selected preset already contains a network.
+      </span>
+      }
+    </ng-container>
+  </km-combobox>
+
+  @if (!isCSIDriverDisabled) {
+  <mat-card-header class="km-no-padding">
+    <mat-card-title>CSI Driver Settings</mat-card-title>
+  </mat-card-header>
+  <km-combobox [options]="storageProfiles"
+               [selected]="selectedStorageProfile"
+               [hint]="getHint(Controls.StorageProfile)"
+               [formControlName]="Controls.StorageProfile"
+               [required]="true"
+               [label]="storageProfileLabel"
+               (changed)="onStorageProfileChange($event)"
+               inputLabel="Select storage profile..."
+               filterBy="name">
+    <div *option="let storageProfile">{{storageProfile.name}}</div>
+  </km-combobox>
+  <mat-form-field fxFlex>
+    <mat-label>Filesystem</mat-label>
+    <mat-select [formControlName]="Controls.Filesystem"
+                disableOptionCentering
+                required>
+      @for (fstype of fstypes; track fstype) {
+      <mat-option [value]="fstype"> {{fstype}} </mat-option>
+      }
+    </mat-select>
+    @if (form.get(Controls.Filesystem).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+  </mat-form-field>
+  }
+</form>

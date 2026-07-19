@@ -1,0 +1,260 @@
+{
+  "owners": {
+    "projects": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "members": {
+      "view": true,
+      "edit": true,
+      "delete": true,
+      "create": true
+    },
+    "groups": {
+      "view": true,
+      "edit": true,
+      "delete": true,
+      "create": true
+    },
+    "sshkeys": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "clusters": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "clustertemplates": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "nodes": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "machineDeployments": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "serviceaccounts": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "serviceaccountToken": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "rbac": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "backups": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "clusterbackups": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "kyvernoPolicies": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    }
+  },
+  "editors": {
+    "projects": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": false
+    },
+    "members": {
+      "view": false,
+      "edit": false,
+      "delete": false,
+      "create": false
+    },
+    "groups": {
+      "view": false,
+      "edit": false,
+      "delete": false,
+      "create": false
+    },
+    "sshkeys": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "clusters": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "clustertemplates": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "nodes": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "machineDeployments": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "serviceaccounts": {
+      "view": false,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "serviceaccountToken": {
+      "view": false,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "rbac": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "backups": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "clusterbackups": {
+      "view": true,
+      "edit": true,
+      "create": true,
+      "delete": true
+    },
+    "kyvernoPolicies": {
+      "view": true,
+      "edit": false,
+      "create": false,
+      "delete": false
+    }
+  },
+  "viewers": {
+    "projects": {
+      "view": true,
+      "edit": false,
+      "create": true,
+      "delete": false
+    },
+    "members": {
+      "view": false,
+      "edit": false,
+      "delete": false,
+      "create": false
+    },
+    "groups": {
+      "view": false,
+      "edit": false,
+      "delete": false,
+      "create": false
+    },
+    "sshkeys": {
+      "view": true,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "clusters": {
+      "view": true,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "clustertemplates": {
+      "view": true,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "nodes": {
+      "view": true,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "machineDeployments": {
+      "view": true,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "serviceaccounts": {
+      "view": false,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "serviceaccountToken": {
+      "view": false,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "rbac": {
+      "view": false,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "backups": {
+      "view": true,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "clusterbackups": {
+      "view": true,
+      "edit": false,
+      "create": false,
+      "delete": false
+    },
+    "kyvernoPolicies": {
+      "view": true,
+      "edit": false,
+      "create": false,
+      "delete": false
+    }
+  }
+}

@@ -1,0 +1,35 @@
+<km-dialog-title>Add Policy</km-dialog-title>
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <mat-form-field>
+      <mat-label>{{templateLabel}}</mat-label>
+      <mat-select [formControlName]="controls.Template">
+        @for (template of templates; track template) {
+        <mat-option [value]="template">{{template.name}}</mat-option>
+        }
+      </mat-select>
+      @if (form.get(controls.Template).hasError('required')) {
+      <mat-error>
+        <strong>Required</strong>
+      </mat-error>
+      }
+    </mat-form-field>
+    @if (selectedTemplate?.spec?.namespacedPolicy) {
+    <km-autocomplete label="Namespace"
+                     required="true"
+                     [options]="namespaces"
+                     [formControlName]="controls.Namespace">
+      <ng-container hint>
+        Namespace specifies where the Kyverno policy will be deployed
+      </ng-container>
+    </km-autocomplete>
+    }
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <km-button icon="km-icon-add"
+             label="Add"
+             [disabled]="form.invalid"
+             [observable]="getObservable()"
+             (next)="onNext($event)" />
+</mat-dialog-actions>

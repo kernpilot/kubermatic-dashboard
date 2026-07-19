@@ -1,0 +1,75 @@
+<!--
+Copyright 2022 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+@if (title) {
+<mat-card-header class="km-no-padding">
+  <mat-card-title>{{title}}</mat-card-title>
+</mat-card-header>
+}
+
+<form [formGroup]="form">
+  <mat-form-field>
+    @if (label) {
+    <mat-label>{{label}}</mat-label>
+    }
+    <mat-chip-grid class="km-chip-list-with-input"
+                   #tagList
+                   [formControlName]="Controls.Tags">
+      @for (tag of selectedTags; track tag) {
+      <mat-chip-row (removed)="removeTag(tag)">
+        {{tag}}
+        <i matChipRemove
+           class="km-icon-mask km-icon-remove"></i>
+      </mat-chip-row>
+      }
+      <input #tagInput
+             [required]="required"
+             [formControlName]="Controls.Filter"
+             [placeholder]="placeholder"
+             [matAutocomplete]="auto"
+             [matChipInputFor]="tagList"
+             [matChipInputAddOnBlur]="true"
+             [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+             (matChipInputTokenEnd)="addTag($event)" />
+    </mat-chip-grid>
+    <mat-autocomplete #auto="matAutocomplete"
+                      (optionSelected)="selected($event)">
+      @for (tag of filteredTags; track tag) {
+      <mat-option [value]="tag"> {{tag}} </mat-option>
+      }
+    </mat-autocomplete>
+    <mat-hint>{{description}}</mat-hint>
+
+    @if (form.get(Controls.Tags).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+
+    @if (form.get(Controls.Tags).hasError('unique')) {
+    <mat-error>
+      <span>Values must be <strong>unique</strong>.</span>
+    </mat-error>
+    }
+
+    @if (form.get(Controls.Tags).hasError('pattern')) {
+    <mat-error>
+      <span [innerHTML]="patternError"></span>
+    </mat-error>
+    }
+
+
+  </mat-form-field>
+</form>

@@ -1,0 +1,91 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<km-dialog-title>
+  <div>Save Cluster Template</div>
+</km-dialog-title>
+<mat-dialog-content>
+  <form [formGroup]="form"
+        fxLayout="column"
+        id="save-template-form">
+    <mat-form-field fxFlex>
+      <mat-label>Name</mat-label>
+      <input matInput
+             id="km-save-template-name"
+             [formControlName]="control.Name"
+             type="text"
+             autocomplete="off"
+             required
+             cdkFocusInitial>
+      @if (form.get(control.Name).hasError('required')) {
+      <mat-error>
+        <strong>Required</strong>
+      </mat-error>
+      }
+      @if (form.get(control.Name).hasError('pattern')) {
+      <mat-error>
+        Name can only contain alphanumeric characters and dashes (a-z, 0-9 and -). Must not start/end with dash.
+      </mat-error>
+      }
+    </mat-form-field>
+
+    <label class="km-radio-group-label">Select a Scope</label>
+    <mat-radio-group [formControlName]="control.Scope"
+                     fxFlex
+                     fxLayout="column"
+                     class="km-radio-group">
+      <mat-radio-button [value]="scope.User"
+                        class="km-radio-button">
+        <div class="km-radio-button-title">User</div>
+        <div class="km-radio-button-description">Appears in all projects, but is visible only to you</div>
+      </mat-radio-button>
+      <mat-radio-button [value]="scope.Project"
+                        class="km-radio-button">
+        <div class="km-radio-button-title">Project</div>
+        <div class="km-radio-button-description">Appears only in this project, useable by everyone</div>
+      </mat-radio-button>
+      @if (user?.isAdmin) {
+      <mat-radio-button [value]="scope.Global"
+                        class="km-radio-button">
+        <div class="km-radio-button-title">Global</div>
+        <div class="km-radio-button-description">Appears in every project, useable by everyone</div>
+      </mat-radio-button>
+      }
+    </mat-radio-group>
+  </form>
+  @if (showSSHKeyWarning) {
+  <div class="km-dialog-warning"
+       fxLayoutAlign=" center">
+    <i class="km-icon-warning"></i>
+    <div>SSH keys will not be saved in cluster templates that are not in the project scope.</div>
+  </div>
+  }
+  @if (showEncryptionWarning) {
+  <div class="km-dialog-warning"
+       fxLayoutAlign=" center">
+    <i class="km-icon-warning"></i>
+    <div>Encryption at Rest is enabled on this cluster, but it will be disabled when saving it as a template, since templates don’t support encryption.</div>
+  </div>
+  }
+</mat-dialog-content>
+<mat-dialog-actions>
+  <km-button id="km-save-template-confirm-btn"
+             icon="km-icon-save"
+             label="Save Cluster Template"
+             [disabled]="!form.valid"
+             [observable]="getObservable()"
+             (next)="onNext($event)" />
+</mat-dialog-actions>

@@ -1,0 +1,22 @@
+# Compiled output.
+/.angular/cache
+/dist
+/tmp
+/dist-themes
+
+# Dependencies.
+/node_modules
+.angular
+.envrc
+
+# IDEs and editors.
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+.vscode/*
+.nvmrc
+.DS_Store
+applypatch-msg

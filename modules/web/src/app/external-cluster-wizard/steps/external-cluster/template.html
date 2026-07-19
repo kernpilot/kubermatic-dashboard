@@ -1,0 +1,36 @@
+<!--
+Copyright 2022 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<div fxLayout="column">
+  @switch (selectedProvider) {
+  @case (Provider.AKS) {
+  <km-aks-cluster-settings [quotaWidget]="quotaWidget"
+                           [formControl]="form.get(Controls.AKSExternalCluster)" />
+  }
+  @case (Provider.EKS) {
+  <km-eks-cluster-settings [quotaWidget]="quotaWidget"
+                           [formControl]="form.get(Controls.EKSExternalCluster)" />
+  }
+  @case (Provider.GKE) {
+  <km-gke-cluster-settings [quotaWidget]="quotaWidget"
+                           [formControl]="form.get(Controls.GKEExternalCluster)" />
+  }
+  }
+</div>
+
+<ng-template #quotaWidget>
+  <router-outlet name="quota-widget"
+                 (activate)="onActivate($event)" />
+</ng-template>

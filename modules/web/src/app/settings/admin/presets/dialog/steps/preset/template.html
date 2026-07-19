@@ -1,0 +1,71 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<form [formGroup]="form"
+      fxFlex="100%"
+      fxLayout="column"
+      fxLayoutGap="8px">
+  <div class="spacing">Create a Preset with a single provider and add the other providers later.</div>
+  <mat-form-field fxFlex>
+    <mat-label>Preset Name</mat-label>
+    <input matInput
+           [formControlName]="controls.Name"
+           id="km-settings-preset-name-input"
+           type="text"
+           title="name"
+           autocomplete="off"
+           required />
+    @if (form.get(controls.Name).hasError('required')) {
+    <mat-error>
+      <strong>Required</strong>
+    </mat-error>
+    }
+    @if (form.get(controls.Name).hasError('pattern')) {
+    <mat-error>
+      Preset name can only contain alphanumeric characters and dashes (a-z, 0-9 and -). Must not start or end with dash.
+    </mat-error>
+    }
+  </mat-form-field>
+
+  <div class="optional-section">Optional Settings</div>
+  <km-chip-list label="Restrict to Domains and Emails"
+                placeholder="Domains..."
+                [tags]="domains"
+                (onChange)="onDomainsChange($event)"
+                [formControlName]="controls.Domains"
+                [kmPattern]="emailAndDomainRegex"
+                kmPatternError="Input has to be a valid domain like kubermatic.com or emails"
+                fxFlex />
+
+  <km-combobox filterBy="name"
+               selectBy="id"
+               hint="Restrict Preset to Projects"
+               inputLabel="Select project by name"
+               [multiple]="true"
+               [options]="projects"
+               [formControlName]="controls.Projects"
+               [label]="projectLabel"
+               [valueFormatter]="projectDisplayFn.bind(this)">
+    <div *option="let project">{{project.name}}</div>
+  </km-combobox>
+
+  <mat-checkbox [formControlName]="controls.Disable"
+                class="km-disable-ripple">
+    Hide upon creation
+    <i class="km-icon-info km-pointer tooltip"
+       matTooltip="Controls if the Preset should be enabled or disabled after creation. Disabled Presets cannot be used to create new clusters."></i>
+  </mat-checkbox>
+</form>

@@ -1,0 +1,86 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<km-dialog-title>Edit Addon</km-dialog-title>
+<mat-dialog-content>
+  <p class="km-dialog-context-description">Edit <b>{{addon.name}}</b> addon of <b>{{cluster.name}}</b> cluster</p>
+
+  @if (hasLogo()) {
+  <img class="km-addon-logo"
+       [src]="getAddonLogo()"
+       [alt]="addon.name">
+  }
+  @if (!hasLogo()) {
+  <div>{{addon.name}}</div>
+  }
+  @if (!!addonConfig?.spec?.description) {
+  <div class="install-addon-dialog-option-desc">
+    {{addonConfig.spec.description}}
+  </div>
+  }
+  <form [formGroup]="form">
+    @for (control of addonConfig?.spec?.formSpec; track control) {
+    <div>
+      @if (['text', 'number'].includes(control.type)) {
+      <mat-form-field>
+        <mat-label>{{control.displayName}}</mat-label>
+        <input matInput
+               [formControlName]="control.internalName"
+               [type]="control.type"
+               [title]="control.displayName"
+               [required]="!!control.required">
+        <mat-hint>{{control.helpText}}</mat-hint>
+      </mat-form-field>
+      }
+      @if (control.type === 'text-area') {
+      <mat-form-field>
+        <mat-label>{{control.displayName}}</mat-label>
+        <textarea matInput
+                  [formControlName]="control.internalName"
+                  [type]="control.type"
+                  [title]="control.displayName"
+                  [required]="!!control.required"></textarea>
+        <mat-hint>{{control.helpText}}</mat-hint>
+      </mat-form-field>
+      }
+      @if (control.type === 'boolean') {
+      <div class="boolean-field">
+        <mat-checkbox [formControlName]="control.internalName">
+          {{control.displayName}}
+        </mat-checkbox>
+        <div class="mat-hint">{{control.helpText}}</div>
+      </div>
+      }
+    </div>
+    }
+  </form>
+  <form [formGroup]="formBasic">
+    <mat-checkbox [formControlName]="Controls.ContinuouslyReconcile"
+                  matTooltip="With this flag enabled the addon cannot be deleted or modified outside of the UI after installation."
+                  kmValueChangedIndicator>
+      Continuously reconcile addon
+    </mat-checkbox>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-flat-button
+          kmThrottleClick
+          (throttleClick)="edit()"
+          [disabled]="!form.valid">
+    <i class="km-icon-mask km-icon-save"
+       matButtonIcon></i>
+    <span>Save Changes</span>
+  </button>
+</mat-dialog-actions>

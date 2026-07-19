@@ -1,0 +1,157 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+@if (loadingClusterTemplate) {
+<mat-spinner [diameter]="50"
+             class="km-spinner"
+             color="accent" />
+}
+
+@if (!loadingClusterTemplate) {
+<form [formGroup]="form">
+  <mat-card appearance="outlined"
+            fxFlex="100%">
+    <div fxLayout="row">
+      <mat-card-header class="km-no-padding"
+                       fxLayout="row"
+                       fxLayoutGap="40px">
+        <mat-card-title>
+          <div>{{getTitle()}}</div>
+        </mat-card-title>
+      </mat-card-header>
+    </div>
+    <mat-horizontal-stepper linear
+                            disableRipple
+                            style="transition: none;"
+                            [@.disabled]="true"
+                            #stepper>
+      <ng-template matStepperIcon="edit">
+        <i class="km-icon-done"></i>
+      </ng-template>
+      @for (step of steps; track step; let i = $index) {
+      <mat-step [stepControl]="form.get(step.name)"
+                fxFlex="100%"
+                style="transition: none;">
+        <ng-template matStepLabel>{{step.name}}</ng-template>
+        <div id="{{step.id}}-step"
+             class="wizard-step">
+          @switch (step.name) {
+          @case (stepRegistry.Provider) {
+          <km-wizard-provider-step [formControl]="form.get(stepRegistry.Provider)" />
+          }
+          @case (stepRegistry.Cluster) {
+          <km-wizard-cluster-step [formControl]="form.get(stepRegistry.Cluster)" />
+          }
+          @case (stepRegistry.ProviderSettings) {
+          <km-wizard-provider-settings-step [formControl]="form.get(stepRegistry.ProviderSettings)" />
+          }
+          @case (stepRegistry.NodeSettings) {
+          <km-wizard-node-settings-step [formControl]="form.get(stepRegistry.NodeSettings)" />
+          }
+          @case (stepRegistry.MachineNetwork) {
+          <km-wizard-machine-network-step [formControl]="form.get(stepRegistry.MachineNetwork)" />
+          }
+          @case (stepRegistry.Applications) {
+          <km-wizard-applications-step [formControl]="form.get(stepRegistry.Applications)" />
+          }
+          @case (stepRegistry.Summary) {
+          <km-wizard-summary-step />
+          }
+          }
+        </div>
+        <div class="button-navigation"
+             id="{{step.id}}-nav">
+          <a mat-flat-button
+             type="button"
+             color="tertiary"
+             (click)="onCancel()">
+            <i class="km-icon-mask km-icon-cancel"
+               matButtonIcon></i>
+            <span>Cancel</span>
+          </a>
+          <div fxFlex></div>
+          @if (creating) {
+          <mat-spinner fxFlexAlign="center"
+                       [diameter]="30"
+                       color="primary" />
+          }
+          @if (quotaExceededWarning && active?.name === stepRegistry.NodeSettings) {
+          <div fxLayoutAlign="start center">
+            <i class="km-icon-warning"></i>
+            <div><strong>Quota exceeded.</strong> <br>In the last step cluster creation is disabled.</div>
+          </div>
+          }
+          @if (!first) {
+          <button mat-flat-button
+                  type="button"
+                  color="tertiary"
+                  matStepperPrevious>
+            <i class="km-icon-mask km-icon-back"
+               matButtonIcon></i>
+            <span>Back</span>
+          </button>
+          }
+          @if (!last) {
+          <button id="km-wizard-{{step.id}}-next-btn"
+                  mat-flat-button
+                  type="button"
+                  matStepperNext
+                  [disabled]="invalid">
+            <i class="km-icon-mask km-icon-next"
+               matButtonIcon></i>
+            <span>Next</span>
+          </button>
+          }
+          @if (last) {
+          <button id="km-wizard-create-template-btn"
+                  mat-flat-button
+                  type="button"
+                  color="alternative"
+                  [disabled]="creating"
+                  kmThrottleClick
+                  (throttleClick)="onSaveClusterTemplate()">
+            <i class="km-icon-mask km-icon-save"
+               matButtonIcon></i>
+            <span>{{ getSecondaryButtonLabel() }}</span>
+          </button>
+          }
+          @if (last && !showCreateClusterButton) {
+          <button id="km-wizard-update-template-btn"
+                  mat-flat-button
+                  type="button"
+                  [disabled]="creating"
+                  kmThrottleClick
+                  (throttleClick)="onSaveClusterTemplate(true)">
+            <i class="km-icon-mask km-icon-save"
+               matButtonIcon></i>
+            <span>{{getPrimaryButtonLabel()}}</span>
+          </button>
+          }
+          @if (showCreateClusterButton) {
+          <km-button buttonId="km-wizard-create-btn"
+                     icon="km-icon-add"
+                     [label]="getPrimaryButtonLabel()"
+                     [disabled]="creating || quotaExceededWarning"
+                     [observable]="getObservable()"
+                     (next)="onNext($event)" />
+          }
+        </div>
+      </mat-step>
+      }
+    </mat-horizontal-stepper>
+  </mat-card>
+</form>
+}

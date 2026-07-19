@@ -1,0 +1,378 @@
+// Copyright 2021 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'sass:color';
+@use 'sass:map';
+@use 'km-var' as *;
+
+@mixin theme-global($colors) {
+  a {
+    &:not(.mat-mdc-button-base) {
+      color: km-var($colors, primary);
+
+      i[class*='km-icon-'] {
+        background-color: km-var($colors, primary);
+      }
+
+      &:hover {
+        color: km-var($colors, primary-hover);
+
+        i[class*='km-icon-'] {
+          background-color: km-var($colors, primary-hover);
+        }
+      }
+    }
+
+    &.mat-mdc-button-disabled {
+      .km-icon-mask {
+        background-color: km-var($colors, text);
+        opacity: 30%;
+      }
+    }
+  }
+
+  hr {
+    border-color: km-var($colors, divider);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: km-var($colors, scrollbar);
+    border-color: km-var($colors, scrollbar-background);
+  }
+
+  ::-webkit-scrollbar-corner,
+  ::-webkit-scrollbar-track {
+    background: km-var($colors, scrollbar-background);
+  }
+
+  .km-header {
+    color: km-var($colors, text);
+  }
+
+  .km-text {
+    color: km-var($colors, text);
+  }
+
+  .km-text-muted,
+  .km-expand-button {
+    color: km-var($colors, text-secondary);
+  }
+
+  .km-muted-light {
+    color: km-var($colors, muted-light);
+  }
+
+
+  .km-muted-bg {
+    background-color: km-var($colors, text-secondary);
+  }
+
+  .km-info {
+    background-color: km-var($colors, primary-hover);
+  }
+
+  .km-success {
+    color: km-var($colors, indicator-green);
+  }
+
+  .km-success-bg {
+    background-color: km-var($colors, indicator-green);
+  }
+
+  .km-warning {
+    color: km-var($colors, indicator-orange);
+  }
+
+  .km-warning-bg {
+    background-color: km-var($colors, indicator-orange);
+  }
+
+  .km-error {
+    color: km-var($colors, indicator-red);
+  }
+
+  .km-error-bg {
+    background-color: km-var($colors, indicator-red);
+  }
+
+  .km-info-bg {
+    background-color: km-var($colors, primary);
+  }
+
+  .km-option-hover-bg:hover {
+    background-color: km-var($colors, option-background-hover);
+  }
+
+  .km-new-bg {
+    background-color: km-var($colors, secondary);
+    border: 2px solid km-var($colors, background-app-bar);
+  }
+
+  .km-border {
+    border: 1px solid km-var($colors, divider);
+  }
+
+  .km-border-dashed {
+    border: 1px dashed km-var($colors, divider);
+  }
+
+  .km-icon {
+    color: km-var($colors, text);
+  }
+
+  .km-icon-mask-white {
+    background-color: #fff;
+  }
+
+  .km-menu-header {
+    color: km-var($colors, text);
+  }
+
+  .km-code-block {
+    background-color: km-var($colors, divider);
+    color: km-var($colors, text);
+  }
+
+  .km-copy {
+    &:hover {
+      color: km-var($colors, primary);
+    }
+
+    &:active {
+      color: color.adjust(map.get($colors, primary), $lightness: 50%);
+    }
+  }
+
+  .km-alternative-hover:hover {
+    color: km-var($colors, secondary);
+  }
+
+  .km-login-footer {
+    * {
+      color: #fff;
+    }
+  }
+
+  .km-empty-list-msg {
+    border-color: km-var($colors, divider);
+  }
+
+  .km-table-dropdown.mat-mdc-table {
+    background-color: transparent;
+
+    *:not(i) {
+      background-color: transparent;
+    }
+
+    td.mat-mdc-cell {
+      border-top: 1px solid km-var($colors, divider);
+    }
+
+    td:first-child {
+      border-left: 1px solid km-var($colors, divider);
+    }
+
+    td:last-child {
+      border-right: 1px solid km-var($colors, divider);
+    }
+
+    tr {
+      &.mat-mdc-row {
+        &:last-of-type {
+          td {
+            &.mat-mdc-cell {
+              border-bottom: 1px solid km-var($colors, divider);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .km-table-with-frame {
+    td:first-child {
+      border-left: 1px solid km-var($colors, divider);
+    }
+
+    td:last-child {
+      border-right: 1px solid km-var($colors, divider);
+    }
+
+    tr:last-child td.mat-mdc-cell {
+      border-bottom: 1px solid km-var($colors, divider);
+    }
+  }
+
+  .km-panel {
+    .panel {
+      background-color: km-var($colors, option-background);
+      box-shadow: km-var($colors, shadow-dark);
+      color: km-var($colors, text);
+
+      .notification-info .km-icon-mask {
+        background-color: km-var($colors, text-secondary);
+      }
+
+      .custom-link {
+        color: km-var($colors, text);
+      }
+    }
+  }
+
+  .km-provider-edit-settings {
+    background-color: km-var($colors, option-background);
+
+    .mat-mdc-menu-item:not(.remove-hover) {
+      &:hover {
+        background-color: km-var($colors, option-background-hover);
+      }
+    }
+  }
+
+  .km-update-available-badge {
+    border: 1px solid km-var($colors, secondary);
+
+    .km-icon-update-available-arrow {
+      background-color: km-var($colors, secondary);
+    }
+  }
+
+  .km-add-machine-network {
+    &:hover {
+      background-color: km-var($colors, background-hover);
+    }
+  }
+
+  .km-mat-row.km-pointer:hover {
+    background-color: km-var($colors, background-hover);
+  }
+
+  .km-mat-row.km-selected {
+    background-color: km-var($colors, background-hover);
+
+    td {
+      color: km-var($colors, text-disabled);
+    }
+  }
+
+  .km-mat-footer-row {
+    border-color: km-var($colors, divider);
+    color: km-var($colors, text-secondary);
+
+    &:hover {
+      background-color: km-var($colors, background-hover);
+    }
+
+    button {
+      background-color: transparent;
+      color: km-var($colors, text-secondary);
+    }
+  }
+
+  .km-label-primary {
+    border-color: km-var($colors, primary);
+    color: km-var($colors, text);
+
+    &.secondary {
+      border-color: km-var($colors, divider);
+    }
+  }
+
+  .km-search-input {
+    &.mat-mdc-form-field {
+      &.mat-form-field-appearance-outline {
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+          border-width: 2px;
+          color: km-var($colors, primary);
+        }
+
+        .mdc-notched-outline {
+          color: km-var($colors, search-outline);
+        }
+      }
+
+      .mat-mdc-input-element::placeholder {
+        color: km-var($colors, text-secondary);
+      }
+    }
+
+    i {
+      background-color: km-var($colors, text-secondary);
+    }
+  }
+
+  .km-randomize-btn i {
+    background-color: transparent;
+  }
+
+  .mat-mdc-dialog-content {
+    border-bottom: 1px solid km-var($colors, divider);
+  }
+
+  .km-quota-widget-container {
+    .km-icon-circle {
+      background-color: km-var($colors, indicator-red);
+    }
+
+    .km-quota-details {
+      background-color: km-var($colors, option-background);
+      box-shadow: km-var($colors, shadow-dark);
+    }
+
+    .km-quota-widget {
+      &.widget-border {
+        border: 1px solid km-var($colors, divider);
+      }
+    }
+  }
+
+  // style for kmValueChangedIndicator directive
+
+  .km-value-changed {
+    *::after {
+      background-color: km-var($colors, primary);
+    }
+
+    &::after {
+      background-color: km-var($colors, primary);
+    }
+  }
+
+  .mat-mdc-radio-checked {
+    .mdc-radio::after {
+      background-color: km-var($colors, primary);
+    }
+  }
+
+  .mat-mdc-form-field-infix:has(> .km-value-changed) {
+    &::after {
+      background-color: km-var($colors, primary);
+    }
+  }
+
+  .km-paginator-container {
+    border-top: 1px solid km-var($colors, divider);
+  }
+
+  .km-pagination-page-size-select-container {
+    color: km-var($colors, text-secondary);
+  }
+
+  .km-info-container {
+    background-color: rgba(map.get($colors, primary-dark), 15%);
+    border-color: km-var($colors, primary);
+  }
+}

@@ -1,0 +1,104 @@
+<!--
+Copyright 2021 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<div class="event-rate-limit-config">
+  <mat-card-header class="km-no-padding">
+    <mat-card-title>
+      Event Rate Limit Configuration
+      @if (isEnforcedByAdmin) {
+      <i class="km-icon-info km-pointer"
+         matTooltip="Event rate limit configurations are enforced by the admin."></i>
+      }
+    </mat-card-title>
+  </mat-card-header>
+
+  <form [formGroup]="form">
+    <div formArrayName="eventRateLimitConfig"
+         fxLayout="column"
+         fxLayoutGap="16px">
+      @for (limit of eventRateLimitConfigArray.controls; track limit; let i = $index; let isLast = $last) {
+
+      <div [formGroupName]="i"
+           fxLayout="row"
+           fxLayoutAlign="start center"
+           fxLayoutGap="5px"
+           fxLayout.lt-md="column">
+
+        <mat-form-field class="km-dropdown-with-suffix"
+                        fxFlex="30">
+          <mat-label>Limit Type</mat-label>
+          <mat-select [formControlName]="Controls.LimitType"
+                      [disabled]="disableAll"
+                      (selectionChange)="onChangeType($event.value, i)"
+                      disableOptionCentering>
+            @for (key of eventRateLimitTypeKeys; track key) {
+            @if (!isChosenType(eventRateLimitTypes[key], limit)) {
+            <mat-option [value]="eventRateLimitTypes[key]">{{key}}</mat-option>
+            }
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <km-number-stepper [formControlName]="Controls.QPS"
+                           [required]="isRequired(i)"
+                           [disabled]="disableAll"
+                           [forceFormFieldMinWidth]="false"
+                           [verticalButton]="isEditDialog"
+                           label="QPS"
+                           min="1"
+                           step="10"
+                           fxFlex />
+
+        <km-number-stepper [formControlName]="Controls.Burst"
+                           [required]="isRequired(i)"
+                           [disabled]="disableAll"
+                           [forceFormFieldMinWidth]="false"
+                           [verticalButton]="isEditDialog"
+                           label="Burst"
+                           min="1"
+                           step="10"
+                           fxFlex />
+
+        <km-number-stepper [formControlName]="Controls.CacheSize"
+                           [required]="isRequired(i)"
+                           [disabled]="disableAll"
+                           [forceFormFieldMinWidth]="false"
+                           [verticalButton]="isEditDialog"
+                           label="Cache Size"
+                           min="1"
+                           step="10"
+                           fxFlex />
+
+        <div class="delete-button-container"
+             fxFlex="none">
+          <button mat-icon-button
+                  type="button"
+                  color="warn"
+                  (click)="removeType(i)"
+                  [disabled]="blockDeletion(i)"
+                  [matTooltip]="isLast ? 'reset this limit' : 'Delete this limit'">
+            @if (isLast) {
+            <i class="km-icon-mask km-icon-reset"></i>
+            } @else {
+            <i class="km-icon-mask km-icon-delete"></i>
+            }
+          </button>
+        </div>
+
+      </div>
+      }
+    </div>
+  </form>
+</div>

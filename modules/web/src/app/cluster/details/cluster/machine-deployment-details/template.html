@@ -1,0 +1,278 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+@if (isInitialized()) {
+<div class="km-machine-deployment-details">
+  <km-cluster-panel [cluster]="cluster"
+                    [datacenter]="datacenter"
+                    [projectID]="projectID" />
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title class="machine-deployment-name">
+        <i [matTooltip]="machineDeploymentHealthStatus.message"
+           [ngClass]="machineDeploymentHealthStatus.icon"
+           class="machine-deployment-health"></i>
+        <span ngxClipboard
+              [cbContent]="machineDeployment.name"
+              matTooltip="Click to copy"
+              class="km-copy">{{machineDeployment.name}}</span>
+      </mat-card-title>
+      <div fxFlex></div>
+      <div fxLayout="row">
+        @if (machineDeployment.spec?.template.cloud?.edge) {
+        <km-copy-joining-script-button [machineDeploymentID]="machineDeploymentID"
+                                       [clusterName]="clusterName"
+                                       [projectID]="projectID" />
+        }
+        <button mat-icon-button
+                color="tertiary"
+                (click)="showRestartDialog()"
+                [disabled]="!isEditEnabled()"
+                matTooltip="Restart Machine Deployment">
+          <i class="km-icon-mask km-icon-regenerate"></i>
+        </button>
+        <button mat-icon-button
+                color="tertiary"
+                (click)="showEditDialog()"
+                [disabled]="!isEditEnabled()"
+                matTooltip="Edit Machine Deployment">
+          <i class="km-icon-mask km-icon-edit"></i>
+        </button>
+        <button mat-icon-button
+                color="tertiary"
+                (click)="showDeleteDialog()"
+                [disabled]="!isDeleteEnabled()"
+                matTooltip="Delete Machine Deployment">
+          <i class="km-icon-mask km-icon-delete"></i>
+        </button>
+      </div>
+    </mat-card-header>
+    <mat-card-content class="km-row">
+      <div class="km-content-wrap">
+        <km-property>
+          <div key>kubelet Version</div>
+          <div value>{{machineDeployment.spec.template.versions.kubelet}}</div>
+        </km-property>
+        <km-property>
+          <div key>Replicas</div>
+          <div value
+               fxLayout="row"
+               fxLayoutAlign=" center"
+               fxLayoutGap="4px">
+            <span>{{!!machineDeployment.status?.availableReplicas ? machineDeployment.status.availableReplicas : 0}}
+              /{{!!machineDeployment.spec?.replicas ? machineDeployment.spec.replicas : 0}}</span>
+            @if (machineDeployment.status?.availableReplicas > machineDeployment.spec.replicas) {
+            <div class="km-icon-info km-pointer"
+                 matTooltip="Number of available machines may be higher than number of desired machines from the template if deployment is updating."></div>
+            }
+          </div>
+        </km-property>
+        @if (machineDeployment.spec.minReplicas) {
+        <km-property>
+          <div key>Min Replicas</div>
+          <div value>
+            <span>{{machineDeployment.spec.minReplicas}}</span>
+          </div>
+        </km-property>
+        }
+        @if (machineDeployment.spec.maxReplicas) {
+        <km-property>
+          <div key>Max Replicas</div>
+          <div value>
+            <span>{{machineDeployment.spec.maxReplicas}}</span>
+          </div>
+        </km-property>
+        }
+        <km-property>
+          <div key>Paused</div>
+          <div value>{{machineDeployment.spec.paused}}</div>
+        </km-property>
+        <km-property>
+          <div value
+               class="provider-logo-value">
+            <span class="km-provider-logo km-provider-logo-{{clusterProvider}}"></span>
+          </div>
+        </km-property>
+        <km-property>
+          <div value
+               fxLayout="row"
+               fxLayoutGap="10px">
+            <div class="km-os-image-{{systemLogoClass}}"></div>
+            <span>{{system}}</span>
+            @if (system === 'Container Linux') {
+            <km-chip text="EOL"
+                     type="error"
+                     matTooltip="Container Linux has reached its end of life and is no longer maintained or updated." />
+            }
+          </div>
+        </km-property>
+        @if (machineDeployment.spec.template.cloud.aws) {
+        <km-property>
+          <div key>Subnet ID</div>
+          <div value>{{machineDeployment.spec.template.cloud.aws.subnetID}}</div>
+        </km-property>
+        <km-property>
+          <div key>Availability Zone</div>
+          <div value>{{machineDeployment.spec.template.cloud.aws.availabilityZone}}</div>
+        </km-property>
+        }
+        @if (machineDeployment.spec.template.cloud.nutanix) {
+        <km-property>
+          <div key>Image Name</div>
+          <div value>{{machineDeployment.spec.template.cloud.nutanix.imageName}}</div>
+        </km-property>
+        <km-property>
+          <div key>Subnet Name</div>
+          <div value>{{machineDeployment.spec.template.cloud.nutanix.subnetName}}</div>
+        </km-property>
+        <km-property>
+          <div key>CPUs</div>
+          <div value>{{machineDeployment.spec.template.cloud.nutanix.cpus}}</div>
+        </km-property>
+        <km-property>
+          <div key>Cores per CPU</div>
+          <div value>{{machineDeployment.spec.template.cloud.nutanix.cpuCores}}</div>
+        </km-property>
+        @if (machineDeployment.spec.template.cloud.nutanix.cpuPassthrough) {
+        <km-property-boolean label="CPU Passthrough"
+                             [value]="machineDeployment.spec.template.cloud.nutanix.cpuPassthrough" />
+        }
+        <km-property>
+          <div key>Memory</div>
+          <div value>{{machineDeployment.spec.template.cloud.nutanix.memoryMB}} MB</div>
+        </km-property>
+        <km-property>
+          <div key>Disk Size</div>
+          <div value>{{machineDeployment.spec.template.cloud.nutanix.diskSize}} GB</div>
+        </km-property>
+        @if (machineDeployment.spec.template.cloud.nutanix.categories; as categories) {
+        <km-property>
+          <div key>Categories</div>
+          <div value>
+            <km-labels [labels]="categories" />
+          </div>
+        </km-property>
+        }
+        }
+        @if (machineDeployment.spec.template.cloud.vmwareclouddirector; as vmwareclouddirector) {
+        @if (vmwareclouddirector.vapp) {
+        <km-property>
+          <div key>VApp</div>
+          <div value>{{vmwareclouddirector.vapp}}</div>
+        </km-property>
+        }
+        }
+        <km-property>
+          <div key>Created</div>
+          <div value>
+            <km-relative-time [date]="machineDeployment.creationTimestamp" />
+          </div>
+        </km-property>
+        <div class="quota-widget">
+          <router-outlet name="quota-widget"
+                         (activate)="onActivate($event)" />
+        </div>
+        <div fxFlex="100%"
+             fxLayout="row"
+             fxLayoutAlign="start start">
+          @if (machineDeployment.spec.template.labels) {
+          <km-property fxFlex="50%">
+            <div key>Node Labels</div>
+            <div value>
+              <km-labels [labels]="machineDeployment.spec.template.labels"
+                         emptyMessage="No assigned labels" />
+            </div>
+          </km-property>
+          }
+          @if (machineDeployment.spec.template.annotations) {
+          <km-property fxFlex="50%">
+            <div key>Node Annotations</div>
+            <div value>
+              <km-labels [labels]="getFilteredAnnotations(machineDeployment.spec.template.annotations)"
+                         emptyMessage="No assigned annotations" />
+            </div>
+          </km-property>
+          }
+          @if (machineDeployment.spec.template.taints) {
+          <km-property fxFlex="50%">
+            <div key>Node Taints</div>
+            <div value>
+              <km-taints [taints]="machineDeployment.spec.template.taints" />
+            </div>
+          </km-property>
+          }
+          @if (machineDeployment.annotations) {
+          <km-property fxFlex="50%">
+            <div key>Machine Deployment Annotations</div>
+            <div value>
+              <km-labels [labels]="getFilteredAnnotations(machineDeployment.annotations)" />
+            </div>
+          </km-property>
+          }
+          @if (machineDeployment.labels) {
+          <km-property fxFlex="50%">
+            <div key>Machine Deployment Labels</div>
+            <div value>
+              <km-labels [labels]="machineDeployment.labels" />
+            </div>
+          </km-property>
+          }
+        </div>
+      </div>
+      <div class="additional-details">
+        <mat-divider />
+        <div class="km-content-wrap"
+             fxFlex
+             fxLayout="row wrap"
+             fxLayoutAlign=" center">
+          @if (machineDeployment.spec.template.operatingSystem.ubuntu) {
+          <km-property-boolean [value]="machineDeployment.spec.template.operatingSystem.ubuntu.distUpgradeOnBoot"
+                               label="Upgrade system on the first boot" />
+          }
+          @if (machineDeployment.spec.template.operatingSystem.rhel) {
+          <km-property-boolean [value]="machineDeployment.spec.template.operatingSystem.rhel.distUpgradeOnBoot"
+                               label="Upgrade system on the first boot" />
+          }
+          @if (machineDeployment.spec.template.operatingSystem.rockylinux) {
+          <km-property-boolean [value]="machineDeployment.spec.template.operatingSystem.rockylinux.distUpgradeOnBoot"
+                               label="Upgrade system on the first boot" />
+          }
+          @if (machineDeployment.spec.template.operatingSystem.flatcar) {
+          <km-property-boolean [value]="machineDeployment.spec.template.operatingSystem.flatcar.disableAutoUpdate"
+                               label="Disable auto-update" />
+          }
+          @if (machineDeployment.spec.template.operatingSystem.amzn2) {
+          <km-property-boolean [value]="machineDeployment.spec.template.operatingSystem.amzn2.distUpgradeOnBoot"
+                               label="Upgrade system on the first boot" />
+          }
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+  <km-node-list [cluster]="cluster"
+                [mdName]="machineDeployment.name"
+                [nodes]="nodes"
+                [nodesMetrics]="metrics"
+                (deleteNode)="loadNodes()"
+                [projectID]="getProjectID()" />
+  <km-event-card [events]="events" />
+</div>
+}
+
+@if (!isInitialized()) {
+<mat-spinner [diameter]="25"
+             color="accent"
+             class="km-spinner" />
+}

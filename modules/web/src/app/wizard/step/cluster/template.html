@@ -1,0 +1,665 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+@if (loadingClusterDefaults) {
+<mat-spinner [diameter]="25"
+             class="km-spinner"
+             color="accent" />
+}
+
+@if (!loadingClusterDefaults) {
+<form [formGroup]="form">
+  <div fxLayout="row"
+       fxLayout.md="column"
+       fxLayout.sm="column"
+       fxLayout.xs="column"
+       fxLayoutGap="30px">
+    <div fxFlex>
+      <mat-card-header class="km-no-padding">
+        <mat-card-title>Cluster</mat-card-title>
+      </mat-card-header>
+      <mat-form-field>
+        <mat-label>Name</mat-label>
+        <input id="km-wizard-cluster-name-input"
+               matInput
+               [formControlName]="Controls.Name"
+               type="text"
+               title="name"
+               autocomplete="off"
+               required />
+        <button mat-icon-button
+                type="button"
+                matSuffix
+                class="km-randomize-btn"
+                matTooltip="Generate name"
+                (click)="generateName()">
+          <i class="km-icon-randomize"></i>
+        </button>
+        @if (form.get(Controls.Name).hasError('required')) {
+        <mat-error>
+          <strong>Required</strong>
+        </mat-error>
+        }
+        @if (form.get(Controls.Name).hasError('minlength')) {
+        <mat-error>
+          Name must be at least {{ control(Controls.Name).getError('minlength').requiredLength }} characters.
+        </mat-error>
+        }
+        @if (form.get(Controls.Name).hasError('pattern')) {
+        <mat-error>
+          Name cannot contain special characters like | " &lt; &gt; &lbrace; &rbrace; [ ] ` \ ' ; &
+        </mat-error>
+        }
+      </mat-form-field>
+      <mat-card-header class="km-no-padding">
+        <mat-card-title>Network Configuration</mat-card-title>
+      </mat-card-header>
+      <div fxLayout="column"
+           fxLayoutGap="7px">
+        <div class="cni-plugin"
+             fxLayout="column">
+          <mat-button-toggle-group group="cniPluginTypeGroup"
+                                   [formControlName]="Controls.CNIPlugin">
+            @if (provider !== NodeProvider.EDGE) {
+            <mat-button-toggle [value]="cniPlugin.Cilium">
+              <i class="km-cni-image-cilium"></i>
+            </mat-button-toggle>
+            }
+            <mat-button-toggle [value]="cniPlugin.Canal">
+              <i class="km-cni-image-canal"></i>
+            </mat-button-toggle>
+            <mat-button-toggle [value]="cniPlugin.None"> None </mat-button-toggle>
+          </mat-button-toggle-group>
+          @if (hasCNIPluginType()) {
+          <mat-form-field fxFlex
+                          class="km-dropdown-with-suffix">
+            <mat-label>CNI Plugin Version</mat-label>
+            <mat-select [formControlName]="Controls.CNIPluginVersion"
+                        class="km-select-ellipsis"
+                        disableOptionCentering>
+              @for (version of cniPluginVersions; track version) {
+              <mat-option [value]="version"> {{version}} </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          }
+        </div>
+        @if (isDualStackAllowed) {
+        <mat-radio-group fxLayoutGap="50px"
+                         [formControlName]="Controls.IPFamily">
+          <mat-radio-button [value]="IPFamily.IPv4">IPv4</mat-radio-button>
+          <mat-radio-button [value]="IPFamily.DualStack">
+            <div fxFlex
+                 fxLayout="row"
+                 fxLayoutAlign=" center">
+              <span>IPv4 and IPv6 (Dual Stack)</span>
+              <i class="km-icon-info km-pointer"
+                 matTooltip="Dual Stack is a technology preview feature, some limitations may apply depending on the chosen provider. Please see the KKP documentation for more details."></i>
+            </div>
+          </mat-radio-button>
+        </mat-radio-group>
+        }
+        <km-expansion-panel expandLabel="ADVANCED NETWORK CONFIGURATION"
+                            collapseLabel="ADVANCED NETWORK CONFIGURATION">
+          <mat-form-field class="km-dropdown-with-suffix">
+            <mat-label>Proxy Mode</mat-label>
+            <mat-select [formControlName]="Controls.ProxyMode"
+                        class="km-select-ellipsis"
+                        disableOptionCentering>
+              @for (proxyMode of availableProxyModes; track proxyMode) {
+              <mat-option [value]="proxyMode"> {{proxyMode}} </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field class="km-dropdown-with-suffix"
+                          subscriptSizing="dynamic">
+            <mat-label>Expose Strategy</mat-label>
+            <mat-select [formControlName]="Controls.ExposeStrategy"
+                        class="km-select-ellipsis"
+                        disableOptionCentering>
+              @for (exposeStrategy of exposeStrategies; track exposeStrategy) {
+              <mat-option [value]="exposeStrategy">
+                {{exposeStrategy}}
+              </mat-option>
+              }
+            </mat-select>
+            <mat-hint>Leave empty to use the default value.
+              @if (!branding.hideDocumentationLinks) {
+              Check the documentation for more information
+              <a target="_blank"
+                 rel="noopener"
+                 fxLayout="row inline"
+                 fxLayoutAlign=" center"
+                 href="https://docs.kubermatic.com/kubermatic/{{editionVersion}}/tutorials-howtos/networking/expose-strategies/#configure-the-expose-strategy">here <i class="km-icon-external-link"></i></a>.
+              }
+            </mat-hint>
+          </mat-form-field>
+          @if (isExposeStrategyLoadBalancer()) {
+          <km-chip-list class="tag-list"
+                        label="Allowed IP Ranges for API server"
+                        placeholder="IP CIDRs..."
+                        description=""
+                        [formControlName]="Controls.APIServerAllowedIPRanges"
+                        [kmPattern]="ipv4AndIPv6CidrRegex"
+                        kmPatternError="Input has to be a valid IPv4 or IPv6 CIDR">
+            <ng-container hint>
+              Use commas, space or enter key as the separators. This feature is dependent on cloud provider
+              capabilities.
+              @if (!branding.hideDocumentationLinks) {
+              Check the documentation for more information&nbsp;
+              <a target="_blank"
+                 rel="noopener"
+                 fxLayout="row inline"
+                 fxLayoutAlign=" center"
+                 href="https://docs.kubermatic.com/kubermatic/{{editionVersion}}/tutorials-howtos/networking/apiserver-policies/#api-server-allowed-source-ip-ranges">here <i class="km-icon-external-link"></i></a>.
+              }
+            </ng-container>
+          </km-chip-list>
+          }
+          @if (isAllowedIPRangeSupported()) {
+          <km-chip-list class="tag-list"
+                        label="Allowed IP Ranges for NodePorts"
+                        placeholder="IP CIDRs..."
+                        [formControlName]="Controls.NodePortsAllowedIPRanges"
+                        [kmPattern]="ipv4AndIPv6CidrRegex"
+                        kmPatternError="Input has to be a valid IPv4 or IPv6 CIDR" />
+          }
+          <div fxLayout="row"
+               fxLayoutGap="50px"
+               fxFlex="100">
+            <div fxLayout="column"
+                 [fxFlex]="isDualStackIPFamilySelected() ? '50' : '100'">
+              @if (isDualStackIPFamilySelected()) {
+              <h4>IPv4</h4>
+              }
+              <mat-form-field [subscriptSizing]="form.get(Controls.IPv4PodsCIDR).hasError('pattern') ? 'dynamic' : 'fixed'">
+                <mat-label>Pods CIDR</mat-label>
+                <input matInput
+                       [formControlName]="Controls.IPv4PodsCIDR"
+                       type="text"
+                       autocomplete="off" />
+                @if (form.get(Controls.IPv4PodsCIDR).hasError('required')) {
+                <mat-error>
+                  <strong>Required</strong>
+                </mat-error>
+                }
+                @if (form.get(Controls.IPv4PodsCIDR).hasError('pattern')) {
+                <mat-error>
+                  Invalid pattern. Use CIDR notation, i.e. 192.168.1.0/24.
+                </mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field [subscriptSizing]="form.get(Controls.IPv4ServicesCIDR).hasError('pattern') ? 'dynamic' : 'fixed'">
+                <mat-label>Services CIDR</mat-label>
+                <input matInput
+                       [formControlName]="Controls.IPv4ServicesCIDR"
+                       type="text"
+                       autocomplete="off" />
+                @if (form.get(Controls.IPv4ServicesCIDR).hasError('required')) {
+                <mat-error>
+                  <strong>Required</strong>
+                </mat-error>
+                }
+                @if (form.get(Controls.IPv4ServicesCIDR).hasError('pattern')) {
+                <mat-error>
+                  Invalid pattern. Use CIDR notation, i.e. 192.168.1.0/24.
+                </mat-error>
+                }
+              </mat-form-field>
+              <km-number-stepper [formControlName]="Controls.IPv4CIDRMaskSize"
+                                 mode="errors"
+                                 min="1"
+                                 max="32"
+                                 label="Node CIDR Mask Size" />
+            </div>
+            @if (isDualStackIPFamilySelected()) {
+            <div fxLayout="column"
+                 fxFlex="50">
+              <h4>IPv6</h4>
+              <mat-form-field [subscriptSizing]="form.get(Controls.IPv6PodsCIDR).hasError('pattern') ? 'dynamic' : 'fixed'">
+                <mat-label>Pods CIDR</mat-label>
+                <input matInput
+                       [formControlName]="Controls.IPv6PodsCIDR"
+                       type="text"
+                       autocomplete="off" />
+                @if (form.get(Controls.IPv6PodsCIDR).hasError('required')) {
+                <mat-error>
+                  <strong>Required</strong>
+                </mat-error>
+                }
+                @if (form.get(Controls.IPv6PodsCIDR).hasError('pattern')) {
+                <mat-error>
+                  Invalid pattern. Use CIDR notation, i.e. 2002::1234:abcd:ffff:c0a8:101/64.
+                </mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field [subscriptSizing]="form.get(Controls.IPv6ServicesCIDR).hasError('pattern') ? 'dynamic' : 'fixed'">
+                <mat-label>Services CIDR</mat-label>
+                <input matInput
+                       [formControlName]="Controls.IPv6ServicesCIDR"
+                       type="text"
+                       autocomplete="off" />
+                @if (form.get(Controls.IPv6ServicesCIDR).hasError('required')) {
+                <mat-error>
+                  <strong>Required</strong>
+                </mat-error>
+                }
+                @if (form.get(Controls.IPv6ServicesCIDR).hasError('pattern')) {
+                <mat-error>
+                  Invalid pattern. Use CIDR notation, i.e. 2002::1234:abcd:ffff:c0a8:101/64.
+                </mat-error>
+                }
+              </mat-form-field>
+              <km-number-stepper [formControlName]="Controls.IPv6CIDRMaskSize"
+                                 mode="errors"
+                                 min="1"
+                                 max="128"
+                                 label="Node CIDR Mask Size" />
+            </div>
+            }
+          </div>
+          <div fxLayout="column"
+               fxFlex="100"
+               fxLayoutGap="5px">
+            <mat-checkbox [formControlName]="Controls.NodeLocalDNSCache"> Node Local DNS Cache </mat-checkbox>
+            <div fxLayoutAlign=" center">
+
+              <mat-checkbox [formControlName]="Controls.Konnectivity"
+                            [class.km-text-muted]="control(Controls.Konnectivity).disabled">
+                Konnectivity
+              </mat-checkbox>
+              @if (!!control(Controls.Konnectivity).value && control(Controls.Konnectivity).disabled) {
+              <i class="km-icon-info km-pointer"
+                 matTooltip="OpenVPN support is deprecated, hence Konnectivity can no longer be disabled."></i>
+              }
+            </div>
+            @if (isCiliumSelected()) {
+            <mat-checkbox [formControlName]="Controls.CiliumIngress">Ingress <i class="km-icon-info km-pointer"
+                 matTooltip="Enable Cilium kubernetes ingress support"></i></mat-checkbox>
+            }
+            <div fxLayoutAlign="flex-start">
+              @if (canEditCNIValues) {
+              <button mat-flat-button
+                      color="quaternary"
+                      (click)="editCNIValues()">
+                <i class="km-icon-mask km-icon-edit"
+                   matButtonIcon></i>
+                <span>Edit CNI Values</span>
+              </button>
+              }
+            </div>
+          </div>
+        </km-expansion-panel>
+      </div>
+      @if (isUserSshKeyEnabled) {
+      <km-wizard-cluster-ssh-keys [formControl]="form.get(Controls.SSHKeys)" />
+      }
+    </div>
+    <div fxFlex>
+      <mat-card-header class="km-no-padding">
+        <mat-card-title>Specification</mat-card-title>
+      </mat-card-header>
+      <div fxLayout="column"
+           fxLayoutGap="8px">
+        <div fxFlex="100"
+             fxLayoutGap="10px"
+             fxLayout="row">
+          <mat-form-field fxFlex
+                          class="km-dropdown-with-suffix">
+            <mat-label>Control Plane Version</mat-label>
+            <mat-select [formControlName]="Controls.Version"
+                        class="km-select-ellipsis"
+                        disableOptionCentering
+                        required>
+              @for (version of masterVersions; track version) {
+              <mat-option [value]="version.version">
+                {{ version.version }}
+              </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field fxFlex
+                          class="km-dropdown-with-suffix">
+            <mat-label>Container Runtime</mat-label>
+            <mat-select [formControlName]="Controls.ContainerRuntime"
+                        class="km-select-ellipsis"
+                        disableOptionCentering
+                        disabled
+                        matTooltip="Containerd is the only supported container runtime"
+                        required>
+              <mat-option [value]="containerRuntime.Containerd">containerd</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div fxLayout="column"
+             fxLayoutGap="8px">
+          <div fxFlex="100"
+               fxLayout="column">
+            <mat-form-field>
+              <mat-label>Admission Plugins</mat-label>
+              <mat-select [formControlName]="Controls.AdmissionPlugins"
+                          multiple
+                          panelClass="km-multiple-values-dropdown"
+                          disableOptionCentering>
+                @for (admissionPlugin of admissionPlugins; track admissionPlugin) {
+                <mat-option [value]="admissionPlugin"
+                            [disabled]="isAdmissionPluginEnforced(admissionPlugin)">
+                  {{getPluginName(admissionPlugin)}}
+                  @if (admissionPlugin === admissionPlugin.PodSecurityPolicy) {
+                  <i class="km-icon-info km-pointer"
+                     matTooltip="Pod Security Policies allow detailed authorization of pod creation and updates."></i>
+                  }
+                </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            @if (isPluginEnabled(admissionPlugin.PodSecurityPolicy)) {
+            <div class="km-admission-plugin-warning"
+                 fxLayout="row"
+                 fxLayoutAlign=" center"
+                 fxLayoutGap="8px">
+              <i class="km-icon-warning km-warning km-pointer"></i>
+              <p fxFlex="95">
+                An active Pod Security Policy means that a lot of Pod specifications, Operators and Helm charts will not
+                work out of the box. Enabling Pod Security Policy is not recommended since this is a deprecated feature
+                that will be removed with Kubernetes v1.25.
+                <a href="https://kubernetes.io/blog/2022/08/23/kubernetes-v1-25-release/#pod-security-changes"
+                   target="_blank"
+                   rel="noreferrer noopener"
+                   fxLayout="row inline"
+                   fxLayoutAlign=" center">Learn more <i class="km-icon-external-link i-18"></i></a>
+              </p>
+            </div>
+            }
+            @if (isPodSecurityPolicyEnforced()) {
+            <div class="km-admission-plugin-warning"
+                 fxLayout="row">
+              <i class="km-icon-info km-pointer"></i>
+              <p fxFlex="95">Pod Security Policy is enforced by your admin in the chosen datacenter.</p>
+            </div>
+            }
+            @if (isPluginEnabled(admissionPlugin.PodNodeSelector)) {
+            <km-label-form class="pod-node-selector-config"
+                           title="Pod Node Selector Configuration"
+                           keyName="Namespace"
+                           valueName="Label Selector"
+                           noValidators="true"
+                           [labels]="podNodeSelectorAdmissionPluginConfig"
+                           [formControlName]="Controls.PodNodeSelectorAdmissionPluginConfig"
+                           [labelHint]="CLUSTER_DEFAULT_NODE_SELECTOR_HINT"
+                           [labelHintKey]="CLUSTER_DEFAULT_NODE_SELECTOR_NAMESPACE"
+                           (labelsChange)="onPodNodeSelectorAdmissionPluginConfigChange($event)"
+                           fxFlex="100" />
+            }
+            @if (isPluginEnabled(admissionPlugin.EventRateLimit)) {
+            <div>
+              <km-wizard-cluster-event-rate-limit [formControl]="form.get(Controls.EventRateLimitConfig)"
+                                                  [isEnforcedByAdmin]="admissionPluginsConfiguration?.eventRateLimit?.enforced" />
+            </div>
+            }
+          </div>
+          <div fxLayout="column"
+               fxFlex="100"
+               fxLayoutGap="10px">
+            <div fxLayoutAlign=" center">
+              <mat-checkbox [formControlName]="Controls.AuditLogging">Audit Logging</mat-checkbox>
+              @if (!!controlValue(Controls.AuditLogging)) {
+              <mat-button-toggle-group [formControlName]="Controls.AuditPolicyPreset"
+                                       group="auditLogging">
+                <mat-button-toggle [value]="AuditPolicyPreset.Custom"
+                                   matTooltip="Sets up cluster with a metadata audit policy that can be edited after the cluster has been created.">
+                  custom
+                </mat-button-toggle>
+                <mat-button-toggle [value]="AuditPolicyPreset.Metadata"
+                                   matTooltip="Logs metadata for all requests received by the Kubernetes API.">
+                  metadata
+                </mat-button-toggle>
+                <mat-button-toggle [value]="AuditPolicyPreset.Minimal"
+                                   matTooltip="Logs extended information about key security concerns like workload modifications and access to sensitive information.">
+                  minimal
+                </mat-button-toggle>
+                <mat-button-toggle [value]="AuditPolicyPreset.Recommended"
+                                   matTooltip="Logs extended information about key security concerns and metadata for all other requests. Recommended for best security coverage.">
+                  recommended
+                </mat-button-toggle>
+              </mat-button-toggle-group>
+              }
+              @if (isEnforced(Controls.AuditLogging)) {
+              <i class="km-icon-info km-pointer"
+                 matTooltip="Audit Logging is enforced by your admin in the chosen datacenter."></i>
+              }
+            </div>
+            @if (!!controlValue(Controls.AuditLogging)) {
+            <div fxLayoutAlign=" center">
+              <mat-checkbox [formControlName]="Controls.AuditWebhookBackend"> Audit Webhook Backend </mat-checkbox>
+              <i class="km-icon-info km-pointer"
+                 [matTooltip]="enforcedAuditWebhookSettings ? 'Audit Webhook Backend settings are enforced by your admin in the chosen datacenter.' : 'Configure webhook backend for audit logging functionality.'"></i>
+            </div>
+            @if (!!controlValue(Controls.AuditWebhookBackend)) {
+            <mat-form-field>
+              <mat-label>Secret Name</mat-label>
+              <input matInput
+                     [formControlName]="Controls.AuditWebhookBackendSecretName"
+                     type="text"
+                     autocomplete="off" />
+              @if (form.get(Controls.AuditWebhookBackendSecretName)?.hasError('required')) {
+              <mat-error>
+                <strong>Required</strong>
+              </mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Secret Namespace</mat-label>
+              <input matInput
+                     [formControlName]="Controls.AuditWebhookBackendSecretNamespace"
+                     type="text"
+                     autocomplete="off" />
+              @if (form.get(Controls.AuditWebhookBackendSecretNamespace)?.hasError('required')) {
+              <mat-error>
+                <strong>Required</strong>
+              </mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Initial Backoff</mat-label>
+              <input matInput
+                     [formControlName]="Controls.AuditWebhookBackendInitialBackoff"
+                     type="text"
+                     autocomplete="off" />
+              <mat-hint>Leave empty to use the default value. Default value is 10s.</mat-hint>
+            </mat-form-field>
+            }
+            }
+            @if (isclusterBackupEnabled) {
+            <mat-checkbox [formControlName]="Controls.ClusterBackup">
+              Cluster Backup
+              <i class="km-icon-info km-pointer"
+                 matTooltip="Enable create backups from this cluster"></i>
+            </mat-checkbox>
+            }
+            @if (!!controlValue(Controls.ClusterBackup) && isclusterBackupEnabled) {
+            <mat-form-field>
+              <mat-label>{{backupStorageLocationLabel}}</mat-label>
+              <mat-select [formControlName]="Controls.BackupStorageLocation"
+                          disableOptionCentering>
+                @for (bsl of backupStorageLocationsList; track bsl) {
+                <mat-option [value]="bsl.name">{{bsl.displayName}}
+                </mat-option>
+                }
+              </mat-select>
+              @if (form.get(Controls.BackupStorageLocation).hasError('required')) {
+              <mat-error>
+                <strong>Required</strong>
+              </mat-error>
+              }
+            </mat-form-field>
+            }
+            <mat-checkbox [formControlName]="Controls.DisableCSIDriver"
+                          [disabled]="isCSIDriverDisabled">
+              Disable CSI Driver
+              <i class="km-icon-info km-pointer"
+                 [matTooltip]="isCSIDriverDisabled ? 'CSI Driver is disabled by your admin in the chosen datacenter.' : 'Disable default CSI storage driver, if available.'"></i>
+            </mat-checkbox>
+            @if (isEncryptionAtRestVisible()) {
+            <mat-checkbox [formControlName]="Controls.EncryptionAtRest">
+              <div fxLayout="row"
+                   fxLayoutAlign=" center"
+                   fxLayoutGap="8px">
+                <span>Encryption at Rest</span>
+                <i class="km-icon-info km-pointer"
+                   matTooltip="Enable encryption at rest for cluster secrets for this user cluster."></i>
+              </div>
+            </mat-checkbox>
+            }
+            @if (!!controlValue(Controls.EncryptionAtRest) && isEncryptionAtRestVisible()) {
+            <mat-form-field>
+              <mat-label>Encryption Key</mat-label>
+              <input matInput
+                     [formControlName]="Controls.EncryptionAtRestKey"
+                     kmInputPassword
+                     placeholder="Base64-encoded 32-byte encryption key"
+                     autocomplete="off" />
+              <button mat-icon-button
+                      type="button"
+                      matSuffix
+                      class="km-randomize-btn"
+                      matTooltip="Generate encryption key"
+                      (click)="generateEncryptionKey()">
+                <i class="km-icon-randomize"></i>
+              </button>
+              @if (form.get(Controls.EncryptionAtRestKey)?.hasError('required')) {
+              <mat-error>
+                <strong>Required</strong>
+              </mat-error>
+              }
+              @if (form.get(Controls.EncryptionAtRestKey)?.hasError('invalidBase64')) {
+              <mat-error>
+                <strong>Invalid base64 format</strong>
+              </mat-error>
+              }
+              <mat-hint>Provide a base64-encoded 32-byte encryption key or use the generate button.</mat-hint>
+            </mat-form-field>
+            }
+            @if (isEnterpriseEdition) {
+            @if (isKubeLBEnabled) {
+            <div fxLayout="row"
+                 fxLayoutAlign=" center"
+                 [matTooltip]="isKubeLBEnforced ? 'Kubermatic KubeLB is enforced by your admin in the chosen datacenter and cannot be disabled.' : ''">
+              <mat-checkbox [formControlName]="Controls.KubeLB"
+                            [disabled]="isKubeLBEnforced">
+                Kubermatic KubeLB
+              </mat-checkbox>
+              <i class="km-icon-info km-pointer"
+                 [matTooltip]="'Enable to use Kubermatic KubeLB for managing load balancers in your cluster. This allows automatic provisioning and management of load balancers for your services.'"></i>
+            </div>
+            }
+            @if (form.get(Controls.KubeLB).value) {
+            <div class="km-suboption">
+              <mat-checkbox [formControlName]="Controls.KubeLBUseLoadBalancerClass">
+                Use LoadBalancer Class
+                <i class="km-icon-info km-pointer"
+                   matTooltip="Enable to limit KubeLB to only process services with Kubernetes LoadBalancer Class named `kubelb`. When disabled, KubeLB will manage all services of type `LoadBalancer`"></i>
+              </mat-checkbox>
+            </div>
+            <div class="km-suboption">
+              <mat-checkbox [formControlName]="Controls.KubeLBEnableGatewayAPI">
+                Enable Gateway API
+                <i class="km-icon-info km-pointer"
+                   matTooltip="Enable to use Gateway APIs. KKP will install the Gateway API CRDs in this cluster."></i>
+              </mat-checkbox>
+            </div>
+            }
+            }
+            @if (isKubernetesDashboardEnabled) {
+            <mat-checkbox [formControlName]="Controls.KubernetesDashboardEnabled">
+              <div fxLayout="row"
+                   fxLayoutAlign=" center">
+                <span>Kubernetes Dashboard</span>
+                <i class="km-icon-warning km-pointer"
+                   [matTooltip]="KUBERNETES_DASHBOARD_DEPRECATED_MESSAGE"></i>
+              </div>
+            </mat-checkbox>
+            }
+            <mat-checkbox [formControlName]="Controls.OPAIntegration"
+                          id="km-wizard-opa-integration-checkbox"
+                          [matTooltipDisabled]="!form.get(Controls.OPAIntegration).disabled">
+              <div fxLayout="row"
+                   fxLayoutAlign=" center">
+                <span>OPA Integration</span>
+                @if (isEnforced(Controls.OPAIntegration)) {
+                <i class="km-icon-info km-pointer"
+                   matTooltip="OPA Integration is {{form.get(Controls.OPAIntegration).value ? 'enforced' : 'disabled'}} by your admin."></i>
+                }
+                <i class="km-icon-warning km-pointer"
+                   [matTooltip]="OPA_DEPRECATED_MESSAGE"></i>
+              </div>
+            </mat-checkbox>
+            @if (isEnterpriseEdition) {
+            <mat-checkbox [formControlName]="Controls.KyvernoIntegration">
+              Kyverno Policy Management
+              <i class="km-icon-info km-pointer"
+                 matTooltip="Enable to deploy Kyverno for this User Cluster"></i>
+            </mat-checkbox>
+            }
+            @if (isMLAEnabled()) {
+            <mat-checkbox [formControlName]="Controls.MLALogging">
+              User Cluster Logging
+              @if (isEnforced(Controls.MLALogging)) {
+              <i class="km-icon-info km-pointer"
+                 matTooltip="User Cluster Logging is enforced by your admin."></i>
+              }
+            </mat-checkbox>
+            <mat-checkbox [formControlName]="Controls.MLAMonitoring">
+              User Cluster Monitoring
+              @if (isEnforced(Controls.MLAMonitoring)) {
+              <i class="km-icon-info km-pointer"
+                 matTooltip="User Cluster Monitoring is enforced by your admin."></i>
+              }
+            </mat-checkbox>
+            }
+            @if (isUserSshKeyEnabled) {
+            <mat-checkbox [formControlName]="Controls.UserSSHKeyAgent">
+              User SSH Key Agent
+              <i class="km-icon-info km-pointer"
+                 matTooltip="Enable to deploy User SSH Key Agent to the cluster. It cannot be changed once the cluster is created."></i>
+            </mat-checkbox>
+            }
+            @if (form.get(Controls.RouterReconciliation)) {
+            <mat-checkbox [formControlName]="Controls.RouterReconciliation">
+              Skip Router Reconciliation
+            </mat-checkbox>
+            }
+            <km-label-form [title]="'Labels'"
+                           [labels]="labels"
+                           [asyncKeyValidators]="asyncLabelValidators"
+                           [formControlName]="Controls.Labels"
+                           [disabledLabel]="clusterDefaultNodeSelectorNamespace"
+                           [disabledLabelTooltip]="CLUSTER_DEFAULT_NODE_SELECTOR_TOOLTIP"
+                           [staticLabels]="adminStaticLabels"
+                           [canDeleteDisabledLabel]="true"
+                           (labelsChange)="onLabelsChange($event)"
+                           fxFlex="100" />
+            <km-annotation-form [annotations]="annotations"
+                                [formControlName]="Controls.Annotations"
+                                (annotationsChange)="onAnnotationsChange($event)"
+                                fxFlex="100" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+}

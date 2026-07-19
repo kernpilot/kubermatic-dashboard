@@ -1,0 +1,67 @@
+// Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'variables';
+@use 'mixins';
+
+.km-frontpage-background {
+  @include mixins.size(100%);
+
+  background-color: var(--km-background-color, #001930);
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+
+.frontpage-content {
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+
+  .frontpage-inner-text {
+    color: #fff;
+    font-family: variables.$font-secondary;
+    font-size: 36px;
+    font-weight: 500;
+    line-height: 42px;
+    margin-bottom: 40px;
+    text-align: center;
+  }
+
+  .mat-mdc-raised-button {
+    @include mixins.size(200px, 50px);
+
+    background-color: transparent;
+    border-image: linear-gradient(to bottom right, #ff7399, #ffad05) 1;
+    border-style: solid;
+    border-width: 2px;
+    color: #fff;
+    font-family: variables.$font-primary;
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 46px;
+  }
+
+  .login-button {
+    transition: 0.25s;
+
+    &:hover,
+    &:focus {
+      box-shadow: 0 2px 0.4em 0.2px #ff7399;
+      transform: translateY(-0.25em);
+    }
+  }
+}

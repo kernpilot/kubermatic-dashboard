@@ -1,0 +1,67 @@
+// Copyright 2021 The Kubermatic Kubernetes Platform contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+@use 'sass:map';
+@use 'km-var' as *;
+
+@mixin theme-cni-version-component($colors) {
+  .cni-version-container {
+    .cni-version {
+      .mdc-notched-outline {
+        --mat-form-field-outlined-disabled-outline-color: #{km-var($colors, divider)};
+      }
+
+      .cni-version-type {
+        border-color: km-var($colors, divider);
+      }
+
+      .mat-mdc-form-field {
+        .mat-mdc-select-value-text {
+          color: km-var($colors, text);
+        }
+
+        .mdc-notched-outline {
+          .mdc-notched-outline__leading {
+            border-radius: 0;
+          }
+        }
+
+        div.mat-mdc-form-field-flex label {
+          color: km-var($colors, text-secondary);
+        }
+      }
+
+      &.enabled:hover {
+        .cni-version-type {
+          border-color: km-var($colors, secondary);
+        }
+
+        .mat-mdc-form-field {
+          .mdc-notched-outline {
+            .mdc-notched-outline__leading,
+            .mdc-notched-outline__notch,
+            .mdc-notched-outline__trailing {
+              border-color: km-var($colors, secondary);
+              border-width: 2px;
+            }
+          }
+        }
+
+        div.mat-mdc-form-field-flex label {
+          color: km-var($colors, secondary-dark);
+        }
+      }
+    }
+  }
+}

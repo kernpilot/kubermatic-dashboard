@@ -1,0 +1,336 @@
+<!--
+               Kubermatic Enterprise Read-Only License
+                      Version 1.0 ("KERO-1.0”)
+                  Copyright © 2022 Kubermatic GmbH
+
+1. You may only view, read and display for studying purposes the source
+   code of the software licensed under this license, and, to the extent
+   explicitly provided under this license, the binary code.
+2. Any use of the software which exceeds the foregoing right, including,
+   without limitation, its execution, compilation, copying, modification
+   and distribution, is expressly prohibited.
+3. THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+END OF TERMS AND CONDITIONS
+-->
+@if (hasQuota()) {
+<div class="km-quota-widget-container"
+     [ngClass]="{'collapsed': isCollapsed}">
+  <ng-container *ngTemplateOutlet="showQuotaWidgetDetails ? quotaWidgetDetails : quotaWidget" />
+</div>
+}
+
+<ng-template #quotaWidget>
+  @if (showAsCard) {
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      <ng-container *ngTemplateOutlet="quotaWidgetWithoutCard" />
+    </mat-card-content>
+  </mat-card>
+  } @else {
+  <ng-container *ngTemplateOutlet="quotaWidgetWithoutCard" />
+  }
+
+  <ng-template #quotaWidgetWithoutCard>
+    <div class="km-quota-widget"
+         [ngClass]="{
+          'widget-border': (!showAsCard && !showQuotaWidgetDetails) && showBorderOutline
+          }"
+         fxLayout="row"
+         fxLayoutAlign=" center">
+      @if (showWarning && !isWidgetApplicableForExternalOrImportedCluster) {
+      <i class="km-icon-warning"
+         matTooltip="The project quota is overdrawn"></i>
+      }
+
+      @if (showIcon) {
+      <i class="km-icon-mask km-icon-quota"></i>
+      }
+
+      @if (!isCollapsed) {
+      <ng-container [ngTemplateOutlet]="!isWidgetApplicableForExternalOrImportedCluster ? quotaProgressBars : notApplicableText" />
+      }
+
+      <ng-template #quotaProgressBars>
+        <ng-container>
+          @if (hasCpuQuota) {
+          <ng-container [ngTemplateOutlet]="progressBar"
+                        [ngTemplateOutletContext]="{label: 'CPU', percentage: quotaPercentage.cpu}" />
+          }
+
+          @if (hasMemoryQuota) {
+          <ng-container [ngTemplateOutlet]="progressBar"
+                        [ngTemplateOutletContext]="{label: 'Memory', percentage: quotaPercentage.memory}" />
+          }
+
+          @if (hasStorageQuota) {
+          <ng-container [ngTemplateOutlet]="progressBar"
+                        [ngTemplateOutletContext]=" {label: 'Disk', percentage: quotaPercentage.storage}" />
+          }
+        </ng-container>
+      </ng-template>
+
+      <ng-template #notApplicableText>
+        <span class="no-quota">Does not apply to {{ isImportedCluster ? 'imported' : isKubeOneCluster ? 'KubeOne' : 'external' }} clusters</span>
+      </ng-template>
+    </div>
+
+    @if (showDetails$ | async) {
+    <mat-card appearance="outlined"
+              class="km-quota-details {{classForQuotaDetailInSelectProjectView}}"
+              [ngClass]="{'collapsed': isCollapsed}">
+
+      @if (!isCollapsed && quotaDetails) {
+      <mat-card-content fxLayout="column">
+        <div class="km-detail-row">Project Quota</div>
+
+        @if (hasCpuQuota) {
+        <ng-container *ngTemplateOutlet="detailRow; context: {
+              label: 'CPU',
+              usage: quotaDetails.status.globalUsage.cpu,
+              quota: quotaDetails.quota.cpu,
+              percentage: quotaPercentage.cpu}" />
+        }
+
+        @if (hasMemoryQuota) {
+        <ng-container *ngTemplateOutlet="detailRow; context: {
+               label: 'Memory',
+               usage: quotaDetails.status.globalUsage.memory,
+               quota: quotaDetails.quota.memory,
+               percentage: quotaPercentage.memory,
+               unit: 'GB'
+             }" />
+        }
+
+        @if (hasStorageQuota) {
+        <ng-container *ngTemplateOutlet="detailRow; context: {
+               label: 'Disk',
+               usage: quotaDetails.status.globalUsage.storage,
+               quota: quotaDetails.quota.storage,
+               percentage: quotaPercentage.storage,
+               unit: 'GB'
+               }" />
+        }
+
+        <ng-template #detailRow
+                     let-label="label"
+                     let-usage="usage"
+                     let-quota="quota"
+                     let-unit="unit"
+                     let-percentage="percentage">
+          <div class="km-detail-row"
+               fxLayout="row"
+               fxLayoutAlign="space-between center">
+            <span fxFlex>{{ label }}</span>
+
+            <div fxFlex="70%"
+                 fxLayout="row wrap"
+                 fxLayoutGap="5px"
+                 fxLayoutAlign="flex-end center">
+              @if (showWarning && percentage > quotaLimit) {
+              <i class="km-icon-circle"></i>
+              }
+
+              <span fxLayoutAlign="flex-end">
+                {{ usage ?? 0 }}/{{ quota ?? 0 }}
+              </span>
+              <span fxFlex="15%"
+                    fxLayoutAlign="flex-end">
+                {{ unit }}
+              </span>
+            </div>
+          </div>
+        </ng-template>
+      </mat-card-content>
+      }
+      @if (isCollapsed) {
+      <mat-card-content>
+        <div>Project Quota</div>
+        @if (hasCpuQuota) {
+        <ng-container [ngTemplateOutlet]="progressBarCollapsed"
+                      [ngTemplateOutletContext]=" {
+                            label: 'CPU',
+                            percentage: quotaPercentage.cpu,
+                            resourceData: quotaDetails.quota.cpu,
+                            globalResourceData: quotaDetails.status.globalUsage.cpu ?? 0
+                            }" />
+        }
+
+        @if (hasMemoryQuota) {
+        <ng-container [ngTemplateOutlet]="progressBarCollapsed"
+                      [ngTemplateOutletContext]=" {
+                            label: 'Memory',
+                            percentage: quotaPercentage.memory,
+                            resourceData: quotaDetails.quota.memory,
+                            globalResourceData: quotaDetails.status.globalUsage.memory ?? 0
+                            }" />
+        }
+
+        @if (hasStorageQuota) {
+        <ng-container [ngTemplateOutlet]="progressBarCollapsed"
+                      [ngTemplateOutletContext]=" {
+                            label: 'Disc',
+                            percentage: quotaPercentage.storage,
+                            resourceData: quotaDetails.quota.storage,
+                            globalResourceData: quotaDetails.status.globalUsage.storage ?? 0
+                            }" />
+        }
+      </mat-card-content>
+      }
+    </mat-card>
+    }
+
+    <ng-template #progressBar
+                 let-label="label"
+                 let-percentage="percentage">
+      <km-property>
+        <div key
+             fxLayout="row"
+             fxLayoutGap="4px"
+             fxLayoutAlign="space-between center">
+          <span>{{label}}</span>
+        </div>
+        <mat-progress-bar value
+                          class="property-usage-bar"
+                          mode="determinate"
+                          [color]="getProgressBarAccent(percentage)"
+                          [value]="percentage ?? 1"
+                          [matTooltip]="percentage ? percentage + '%' : ''" />
+      </km-property>
+    </ng-template>
+
+    <ng-template #progressBarCollapsed
+                 let-label="label"
+                 let-percentage="percentage"
+                 let-resourceData="resourceData"
+                 let-globalResourceData="globalResourceData">
+      <km-property>
+
+        <div key
+             fxLayout="row"
+             fxLayoutGap="4px"
+             fxLayoutAlign="space-between center">
+          <span>{{label}}</span>
+          @if (isCollapsed) {
+          <span>{{globalResourceData}}/{{resourceData}}</span>
+          }
+        </div>
+        <mat-progress-bar value
+                          class="property-usage-bar"
+                          mode="determinate"
+                          [ngClass]="{'quota-bars-collapsed': isCollapsed}"
+                          [color]="getProgressBarAccent(percentage)"
+                          [value]="percentage ?? 1"
+                          [matTooltip]="percentage ? percentage + '%' : ''" />
+      </km-property>
+    </ng-template>
+  </ng-template>
+</ng-template>
+
+
+<ng-template #quotaWidgetDetails>
+  @if (hasQuota()) {
+  <div class="km-quota-widget km-extended-widget"
+       fxLayout="row">
+
+    @if (showIcon) {
+    <div class="km-quota-heading"
+         fxLayoutAlign=" center">
+      @if (calculationInProgress$ | async) {
+      <mat-spinner [diameter]="25" />
+      } @else {
+      <i class="km-icon-mask km-icon-quota"></i>
+      }
+    </div>
+    }
+
+    <div class="km-quota-percentages"
+         fxLayout="row"
+         fxLayoutGap="20px"
+         fxLayoutAlign="space-between">
+      @if (hasCpuQuota) {
+      <ng-container [ngTemplateOutlet]="extendedProgress"
+                    [ngTemplateOutletContext]="{
+        label: 'CPU',
+        total: quotaDetails.quota.cpu,
+        used: quotaDetails.status.globalUsage.cpu,
+        percentage: quotaPercentage.cpu,
+        buffer: estimatedQuotaPercentage?.cpu,
+        estimated: estimatedQuota?.calculatedQuota?.cpu
+        }" />
+      }
+
+      @if (hasMemoryQuota) {
+      <ng-container [ngTemplateOutlet]="extendedProgress"
+                    [ngTemplateOutletContext]="{
+        label: 'Memory',
+        unit: 'GB',
+        total: quotaDetails.quota.memory,
+        used: quotaDetails.status.globalUsage.memory,
+        percentage: quotaPercentage.memory,
+        buffer: estimatedQuotaPercentage?.memory,
+        estimated: estimatedQuota?.calculatedQuota?.memory
+        }" />
+      }
+
+      @if (hasStorageQuota) {
+      <ng-container [ngTemplateOutlet]="extendedProgress"
+                    [ngTemplateOutletContext]="{
+        label: 'Disk',
+        unit: 'GB',
+        total: quotaDetails.quota.storage,
+        used: quotaDetails.status.globalUsage.storage,
+        percentage: quotaPercentage.storage,
+        buffer: estimatedQuotaPercentage?.storage,
+        estimated: estimatedQuota?.calculatedQuota?.storage
+        }" />
+      }
+    </div>
+  </div>
+
+  @if (isEstimatedQuotaExceeded) {
+  <div>
+    <mat-hint class="quota-exceeded km-error">
+      The estimated quota will exceed project quota.
+    </mat-hint>
+  </div>
+  }
+  }
+  <ng-template #extendedProgress
+               let-label="label"
+               let-percentage="percentage"
+               let-buffer="buffer"
+               let-total="total"
+               let-used="used"
+               let-estimated="estimated"
+               let-unit="unit">
+    <km-property class="extended-progress">
+      <div key>
+        <span fxFlex>{{label}}</span>
+        <span>
+          @if (!estimated) {
+          {{used ?? 0}}
+          } @else {
+          <span class="estimated-quota-value">{{estimated}}</span>
+          }
+          /{{total}} {{unit}}
+        </span>
+      </div>
+      <div value>
+        <mat-progress-bar class="property-usage-bar"
+                          mode="buffer"
+                          [color]="getProgressBarAccent(percentage)"
+                          [value]="percentage ?? 1"
+                          [bufferValue]="buffer"
+                          [matTooltip]="getExtendedProgressBarTooltip(percentage, buffer)"
+                          matTooltipClass="km-quota-extended-progress-bar-tooltip" />
+      </div>
+    </km-property>
+  </ng-template>
+</ng-template>

@@ -1,0 +1,57 @@
+<!--
+Copyright 2020 The Kubermatic Kubernetes Platform contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div class="notification-container"
+     [ngClass]="{'show-message-section': showMessageSection()}">
+  <div fxLayoutAlign="center center">
+    <i [ngClass]="typeIconClassName"></i>
+  </div>
+
+  <div class="notification-headline km-pointer"
+       fxLayoutAlign=" center"
+       (click)="copyHeadlineToClipboard()"
+       matTooltip="Click to copy">
+    {{getHeadline()}}
+  </div>
+
+  <div fxLayoutAlign="center center">
+    <button mat-icon-button
+            (click)="dismiss()">
+      <i class="km-icon-close"></i>
+    </button>
+  </div>
+
+  @if (showMessageSection()) {
+  <div class="notification-message km-pointer"
+       (click)="copyMessageToClipboard()"
+       matTooltip="Click to copy">
+    @if (!hasLongMessage() || !isMessageCollapsed) {
+    {{message}}
+    } @else {
+    {{message | slice:0:messageMaxLength}}...
+    }
+  </div>
+  @if (hasLongMessage()) {
+  <div class="notification-message-expansion"
+       fxLayoutAlign="center">
+    <button mat-icon-button
+            (click)="isMessageCollapsed = !isMessageCollapsed">
+      <i class="km-icon-arrow-{{isMessageCollapsed ? 'down' : 'up'}}"></i>
+    </button>
+  </div>
+  }
+  }
+</div>
