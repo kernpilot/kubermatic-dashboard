@@ -77,7 +77,7 @@
     "@swimlane/ngx-charts": "^23.0.1",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
-    "browserslist": "^4.28.1",
+    "browserslist": "^4.28.8",
     "buffer": "6.0.3",
     "core-js": "3.41.0",
     "country-code-lookup": "0.1.3",
