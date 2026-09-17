@@ -44,6 +44,7 @@ func TestGetKubeletVersions(t *testing.T) {
 	utilruntime.Must(clusterv1alpha1.AddToScheme(scheme))
 
 	machineGVR := schema.GroupResource{Group: "cluster.k8s.io", Resource: "machines"}
+	machineDeploymentGVR := schema.GroupResource{Group: "cluster.k8s.io", Resource: "machinedeployments"}
 	machineDeploymentGVK := schema.GroupVersionKind{Group: "cluster.k8s.io", Version: "v1alpha1", Kind: "MachineDeployment"}
 
 	machine := &clusterv1alpha1.Machine{
@@ -54,10 +55,14 @@ func TestGetKubeletVersions(t *testing.T) {
 	}
 
 	testcases := []struct {
-		name             string
-		listErr          error
-		expectedVersions []string
-		expectedErr      bool
+		name string
+		// listErr, when set, is returned by the fake client for every list, or
+		// only for the MachineDeployment list when machineDeploymentsOnly is
+		// set.
+		listErr                error
+		machineDeploymentsOnly bool
+		expectedVersions       []string
+		expectedErr            bool
 	}{
 		{
 			name:             "machines are listed when the API is served",
@@ -70,6 +75,12 @@ func TestGetKubeletVersions(t *testing.T) {
 		{
 			name:    "a missing kind on the cluster.k8s.io group means no machines",
 			listErr: &meta.NoKindMatchError{GroupKind: machineDeploymentGVK.GroupKind()},
+		},
+		{
+			name:                   "an absent MachineDeployment resource keeps the versions of the machines",
+			listErr:                apierrors.NewNotFound(machineDeploymentGVR, ""),
+			machineDeploymentsOnly: true,
+			expectedVersions:       []string{"9.9.9"},
 		},
 		{
 			name:        "any other list error is still an error",
@@ -85,7 +96,10 @@ func TestGetKubeletVersions(t *testing.T) {
 			builder := ctrlruntimefake.NewClientBuilder().WithScheme(scheme).WithObjects(machine)
 			if tc.listErr != nil {
 				builder = builder.WithInterceptorFuncs(interceptor.Funcs{
-					List: func(_ context.Context, _ ctrlruntimeclient.WithWatch, _ ctrlruntimeclient.ObjectList, _ ...ctrlruntimeclient.ListOption) error {
+					List: func(ctx context.Context, client ctrlruntimeclient.WithWatch, list ctrlruntimeclient.ObjectList, opts ...ctrlruntimeclient.ListOption) error {
+						if _, isMD := list.(*clusterv1alpha1.MachineDeploymentList); tc.machineDeploymentsOnly && !isMD {
+							return client.List(ctx, list, opts...)
+						}
 						return tc.listErr
 					},
 				})

@@ -117,19 +117,15 @@ func machineAPIAbsent(err error) bool {
 
 // getKubeletVersions returns the list of all kubelet versions used by a given cluster's Machines and MachineDeployments.
 func getKubeletVersions(ctx context.Context, client ctrlruntimeclient.Client) ([]string, error) {
+	// An absent resource leaves its list empty and the loops below read no
+	// version from it. The other list still contributes what it holds.
 	machineList := &clusterv1alpha1.MachineList{}
-	if err := client.List(ctx, machineList); err != nil {
-		if machineAPIAbsent(err) {
-			return nil, nil
-		}
+	if err := client.List(ctx, machineList); err != nil && !machineAPIAbsent(err) {
 		return nil, fmt.Errorf("failed to load machines from cluster: %w", err)
 	}
 
 	machineDeployments := &clusterv1alpha1.MachineDeploymentList{}
-	if err := client.List(ctx, machineDeployments); err != nil {
-		if machineAPIAbsent(err) {
-			return nil, nil
-		}
+	if err := client.List(ctx, machineDeployments); err != nil && !machineAPIAbsent(err) {
 		return nil, KubernetesErrorToHTTPError(err)
 	}
 
