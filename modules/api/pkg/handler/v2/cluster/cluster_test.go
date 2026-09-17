@@ -1132,6 +1132,28 @@ func TestPatchCluster(t *testing.T) {
 			),
 			ExistingMachines: []*clusterv1alpha1.Machine{genOldKubeletMachine("venus")},
 		},
+		// scenario 11 (kubehz): the annotation is the operator's to write, and
+		// the gate reads it from the stored cluster. Sending it in the patch
+		// body must not buy a skipped skew check on a cluster that has managed
+		// machines.
+		{
+			Name:             "scenario 11: the nodepools annotation in the patch body does not skip the machine version skew check",
+			Body:             `{"annotations":{"kubehz.cloud/nodepools":"off"},"spec":{"version":"9.11.3"}}`,
+			ExpectedResponse: `{"error":{"code":400,"message":"Cluster contains nodes running the following incompatible kubelet versions: [9.7.0]. Upgrade your nodes before you upgrade the cluster."}}`,
+			cluster:          "keen-snyder",
+			HTTPStatus:       http.StatusBadRequest,
+			project:          test.GenDefaultProject().Name,
+			ExistingAPIUser:  test.GenDefaultAPIUser(),
+			ExistingKubermaticObjects: test.GenDefaultKubermaticObjects(
+				test.GenTestSeed(),
+				func() *kubermaticv1.Cluster {
+					cluster := test.GenCluster("keen-snyder", "clusterAbc", test.GenDefaultProject().Name, time.Date(2013, 02, 03, 19, 54, 0, 0, time.UTC))
+					cluster.Spec.Cloud.DatacenterName = fakeDC
+					return cluster
+				}(),
+			),
+			ExistingMachines: []*clusterv1alpha1.Machine{genOldKubeletMachine("venus")},
+		},
 	}
 
 	for _, tc := range testcases {

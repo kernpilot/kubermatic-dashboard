@@ -43,9 +43,10 @@ func TestGetKubeletVersions(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clusterv1alpha1.AddToScheme(scheme))
 
-	machineGVR := schema.GroupResource{Group: "cluster.k8s.io", Resource: "machines"}
-	machineDeploymentGVR := schema.GroupResource{Group: "cluster.k8s.io", Resource: "machinedeployments"}
-	machineDeploymentGVK := schema.GroupVersionKind{Group: "cluster.k8s.io", Version: "v1alpha1", Kind: "MachineDeployment"}
+	machineResource := schema.GroupResource{Group: clusterv1alpha1.GroupName, Resource: "machines"}
+	machineDeploymentResource := schema.GroupResource{Group: clusterv1alpha1.GroupName, Resource: "machinedeployments"}
+	machineKind := schema.GroupKind{Group: clusterv1alpha1.GroupName, Kind: "Machine"}
+	podResource := schema.GroupResource{Group: "", Resource: "pods"}
 
 	machine := &clusterv1alpha1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "machine-1", Namespace: metav1.NamespaceSystem},
@@ -70,17 +71,27 @@ func TestGetKubeletVersions(t *testing.T) {
 		},
 		{
 			name:    "a NotFound on the cluster.k8s.io group means no machines",
-			listErr: apierrors.NewNotFound(machineGVR, ""),
+			listErr: apierrors.NewNotFound(machineResource, ""),
 		},
 		{
 			name:    "a missing kind on the cluster.k8s.io group means no machines",
-			listErr: &meta.NoKindMatchError{GroupKind: machineDeploymentGVK.GroupKind()},
+			listErr: &meta.NoKindMatchError{GroupKind: machineKind},
 		},
 		{
 			name:                   "an absent MachineDeployment resource keeps the versions of the machines",
-			listErr:                apierrors.NewNotFound(machineDeploymentGVR, ""),
+			listErr:                apierrors.NewNotFound(machineDeploymentResource, ""),
 			machineDeploymentsOnly: true,
 			expectedVersions:       []string{"9.9.9"},
+		},
+		{
+			name:        "a NotFound on another group is still an error",
+			listErr:     apierrors.NewNotFound(podResource, "some-pod"),
+			expectedErr: true,
+		},
+		{
+			name:        "a missing kind in another group is still an error",
+			listErr:     &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: "apps", Kind: "Deployment"}},
+			expectedErr: true,
 		},
 		{
 			name:        "any other list error is still an error",

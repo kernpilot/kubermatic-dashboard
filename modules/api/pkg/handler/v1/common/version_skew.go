@@ -44,26 +44,21 @@ const (
 	KubehzNodepoolsOff = "off"
 )
 
+// HasNodepoolsOff reports whether the kubehz KKP fork renders the given
+// cluster without a machine-controller. Such a cluster serves no cluster.k8s.io
+// API, so a machine-based skew check against it fails, and it has no
+// KKP-managed machine that can be skewed: the customer joins the nodes and owns
+// their kubelet versions. The caller must read this from the STORED cluster,
+// never from a cluster built out of a request body. The annotation is the
+// operator's to write, and a patch body carries the annotations of whoever
+// sends it.
+func HasNodepoolsOff(cluster *kubermaticv1.Cluster) bool {
+	return cluster.Annotations[KubehzNodepoolsAnnotation] == KubehzNodepoolsOff
+}
+
 // CheckClusterVersionSkew returns a list of machines and/or machine deployments
 // that are running kubelet at a version incompatible with the cluster's control plane.
 func CheckClusterVersionSkew(ctx context.Context, userInfoGetter provider.UserInfoGetter, clusterProvider provider.ClusterProvider, cluster *kubermaticv1.Cluster, projectID string) ([]string, error) {
-	// kubehz: a cluster the fork renders with nodepools off has no
-	// machine-controller, so the user cluster serves no cluster.k8s.io API and
-	// the machine list below fails. That made every PATCH of such a cluster
-	// return 500, and thus blocked its upgrade, because the version write goes
-	// through this endpoint. Such a cluster has no KKP-managed machine that can
-	// be skewed: the customer joins the nodes and owns their kubelet versions.
-	// So skip the machine check here, and keep all other validation (allowed
-	// versions, update rules). getKubeletVersions has a second guard for the
-	// same failure: it reads a NotFound on the cluster.k8s.io group as "no
-	// machines". The two work at different levels. This one is the intended
-	// path and needs no request to the user cluster. The other one keeps the
-	// endpoint up when the API is absent but the annotation is not there, for
-	// example before the operator re-derives it.
-	if cluster.Annotations[KubehzNodepoolsAnnotation] == KubehzNodepoolsOff {
-		return nil, nil
-	}
-
 	client, err := GetClusterClient(ctx, userInfoGetter, clusterProvider, cluster, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a machine client: %w", err)
@@ -106,13 +101,27 @@ func CheckClusterVersionSkew(ctx context.Context, userInfoGetter provider.UserIn
 	return incompatibleVersionsList, nil
 }
 
-// machineAPIAbsent reports whether err says the cluster.k8s.io API is not
+// machineAPIAbsent reports whether err says that the cluster.k8s.io API is not
 // served by the user cluster. A cluster without a machine-controller has no
-// Machine or MachineDeployment resource: the apiserver answers NotFound, and
-// the client answers NoKindMatch when its discovery already knows the group is
-// gone. Both mean "no machines", not a failure.
+// Machine and no MachineDeployment resource: the apiserver answers NotFound,
+// and the client answers NoKindMatch when its discovery already knows the group
+// is gone. Both mean "no machines", not a failure.
+//
+// The group is part of the test. A NotFound from any other group says nothing
+// about the machines, and reading it as "no machines" would pass the skew check
+// on a cluster whose machines were never read.
 func machineAPIAbsent(err error) bool {
-	return apierrors.IsNotFound(err) || meta.IsNoMatchError(err)
+	var noKindMatchErr *meta.NoKindMatchError
+	if errors.As(err, &noKindMatchErr) {
+		return noKindMatchErr.GroupKind.Group == clusterv1alpha1.GroupName
+	}
+
+	var statusErr *apierrors.StatusError
+	if apierrors.IsNotFound(err) && errors.As(err, &statusErr) && statusErr.ErrStatus.Details != nil {
+		return statusErr.ErrStatus.Details.Group == clusterv1alpha1.GroupName
+	}
+
+	return false
 }
 
 // getKubeletVersions returns the list of all kubelet versions used by a given cluster's Machines and MachineDeployments.
