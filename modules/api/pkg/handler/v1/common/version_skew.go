@@ -29,8 +29,32 @@ import (
 	"k8c.io/kubermatic/v2/pkg/validation/nodeupdate"
 	clusterv1alpha1 "k8c.io/machine-controller/sdk/apis/cluster/v1alpha1"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const (
+	// KubehzNodepoolsAnnotation on a KKP Cluster marks how the kubehz KKP fork
+	// renders the cluster's node side.
+	KubehzNodepoolsAnnotation = "kubehz.cloud/nodepools"
+	// KubehzNodepoolsOff is the KubehzNodepoolsAnnotation value for a
+	// bring-your-own cluster: the fork renders no machine-controller and no
+	// operating-system-manager, so the user cluster has no cluster.k8s.io API.
+	KubehzNodepoolsOff = "off"
+)
+
+// HasNodepoolsOff reports whether the kubehz KKP fork renders the given
+// cluster without a machine-controller. Such a cluster serves no cluster.k8s.io
+// API, so a machine-based skew check against it fails, and it has no
+// KKP-managed machine that can be skewed: the customer joins the nodes and owns
+// their kubelet versions. The caller must read this from the STORED cluster,
+// never from a cluster built out of a request body. The annotation is the
+// operator's to write, and a patch body carries the annotations of whoever
+// sends it.
+func HasNodepoolsOff(cluster *kubermaticv1.Cluster) bool {
+	return cluster.Annotations[KubehzNodepoolsAnnotation] == KubehzNodepoolsOff
+}
 
 // CheckClusterVersionSkew returns a list of machines and/or machine deployments
 // that are running kubelet at a version incompatible with the cluster's control plane.
@@ -77,15 +101,40 @@ func CheckClusterVersionSkew(ctx context.Context, userInfoGetter provider.UserIn
 	return incompatibleVersionsList, nil
 }
 
+// machineAPIAbsent reports whether err says that the cluster.k8s.io API is not
+// served by the user cluster. A cluster without a machine-controller has no
+// Machine and no MachineDeployment resource: the apiserver answers NotFound,
+// and the client answers NoKindMatch when its discovery already knows the group
+// is gone. Both mean "no machines", not a failure.
+//
+// The group is part of the test. A NotFound from any other group says nothing
+// about the machines, and reading it as "no machines" would pass the skew check
+// on a cluster whose machines were never read.
+func machineAPIAbsent(err error) bool {
+	var noKindMatchErr *meta.NoKindMatchError
+	if errors.As(err, &noKindMatchErr) {
+		return noKindMatchErr.GroupKind.Group == clusterv1alpha1.GroupName
+	}
+
+	var statusErr *apierrors.StatusError
+	if apierrors.IsNotFound(err) && errors.As(err, &statusErr) && statusErr.ErrStatus.Details != nil {
+		return statusErr.ErrStatus.Details.Group == clusterv1alpha1.GroupName
+	}
+
+	return false
+}
+
 // getKubeletVersions returns the list of all kubelet versions used by a given cluster's Machines and MachineDeployments.
 func getKubeletVersions(ctx context.Context, client ctrlruntimeclient.Client) ([]string, error) {
+	// An absent resource leaves its list empty and the loops below read no
+	// version from it. The other list still contributes what it holds.
 	machineList := &clusterv1alpha1.MachineList{}
-	if err := client.List(ctx, machineList); err != nil {
+	if err := client.List(ctx, machineList); err != nil && !machineAPIAbsent(err) {
 		return nil, fmt.Errorf("failed to load machines from cluster: %w", err)
 	}
 
 	machineDeployments := &clusterv1alpha1.MachineDeploymentList{}
-	if err := client.List(ctx, machineDeployments); err != nil {
+	if err := client.List(ctx, machineDeployments); err != nil && !machineAPIAbsent(err) {
 		return nil, KubernetesErrorToHTTPError(err)
 	}
 

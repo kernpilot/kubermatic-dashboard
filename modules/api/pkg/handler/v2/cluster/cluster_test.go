@@ -31,6 +31,7 @@ import (
 	apiv2 "k8c.io/dashboard/v2/pkg/api/v2"
 	"k8c.io/dashboard/v2/pkg/handler/test"
 	"k8c.io/dashboard/v2/pkg/handler/test/hack"
+	handlerv1common "k8c.io/dashboard/v2/pkg/handler/v1/common"
 	kubermaticv1 "k8c.io/kubermatic/sdk/v2/apis/kubermatic/v1"
 	"k8c.io/kubermatic/sdk/v2/semver"
 	"k8c.io/kubermatic/v2/pkg/cni"
@@ -1084,6 +1085,74 @@ func TestPatchCluster(t *testing.T) {
 					return cluster
 				}(),
 			),
+		},
+		// scenario 9 (kubehz): a bring-your-own cluster has no KKP-managed
+		// machines, and the kubehz KKP fork renders no machine-controller for
+		// it, so the user cluster serves no cluster.k8s.io API and the
+		// machine-based skew check failed the whole request. The version write
+		// must go through.
+		{
+			Name:             "scenario 9: update the version of a cluster with nodepools off, skipping the machine version skew check",
+			Body:             `{"spec":{"version":"9.11.3"}}`, // kubelet is 9.7.0, too old for a 9.11.x control plane
+			ExpectedResponse: `{"id":"keen-snyder","name":"clusterAbc","annotations":{"kubehz.cloud/nodepools":"off"},"creationTimestamp":"2013-02-03T19:54:00Z","type":"kubernetes","spec":{"cloud":{"dc":"fake-dc","fake":{}},"version":"9.11.3","oidc":{},"enableUserSSHKeyAgent":false,"kubernetesDashboard":{"enabled":true},"containerRuntime":"containerd","clusterNetwork":{"ipFamily":"IPv4","services":{"cidrBlocks":["5.6.7.8/8"]},"pods":{"cidrBlocks":["1.2.3.4/8"]},"nodeCidrMaskSizeIPv4":24,"dnsDomain":"cluster.local","proxyMode":"ipvs","ipvs":{"strictArp":true},"nodeLocalDNSCacheEnabled":true},"cniPlugin":{"type":"canal","version":"v3.31"},"exposeStrategy":"NodePort"},"status":{"version":"9.9.9","url":"https://w225mx4z66.asia-east1-a-1.cloud.kubermatic.io:31885","externalCCMMigration":"Unsupported"}}`,
+			cluster:          "keen-snyder",
+			HTTPStatus:       http.StatusOK,
+			project:          test.GenDefaultProject().Name,
+			ExistingAPIUser:  test.GenDefaultAPIUser(),
+			ExistingKubermaticObjects: test.GenDefaultKubermaticObjects(
+				test.GenTestSeed(),
+				func() *kubermaticv1.Cluster {
+					cluster := test.GenCluster("keen-snyder", "clusterAbc", test.GenDefaultProject().Name, time.Date(2013, 02, 03, 19, 54, 0, 0, time.UTC))
+					cluster.Spec.Cloud.DatacenterName = fakeDC
+					cluster.Annotations = map[string]string{
+						handlerv1common.KubehzNodepoolsAnnotation: handlerv1common.KubehzNodepoolsOff,
+					}
+					return cluster
+				}(),
+			),
+			ExistingMachines: []*clusterv1alpha1.Machine{genOldKubeletMachine("venus")},
+		},
+		// scenario 10 (kubehz): the counterpart of scenario 9 — without the
+		// annotation the machine version skew check still runs.
+		{
+			Name:             "scenario 10: the machine version skew check still runs without the nodepools annotation",
+			Body:             `{"spec":{"version":"9.11.3"}}`, // kubelet is 9.7.0, too old for a 9.11.x control plane
+			ExpectedResponse: `{"error":{"code":400,"message":"Cluster contains nodes running the following incompatible kubelet versions: [9.7.0]. Upgrade your nodes before you upgrade the cluster."}}`,
+			cluster:          "keen-snyder",
+			HTTPStatus:       http.StatusBadRequest,
+			project:          test.GenDefaultProject().Name,
+			ExistingAPIUser:  test.GenDefaultAPIUser(),
+			ExistingKubermaticObjects: test.GenDefaultKubermaticObjects(
+				test.GenTestSeed(),
+				func() *kubermaticv1.Cluster {
+					cluster := test.GenCluster("keen-snyder", "clusterAbc", test.GenDefaultProject().Name, time.Date(2013, 02, 03, 19, 54, 0, 0, time.UTC))
+					cluster.Spec.Cloud.DatacenterName = fakeDC
+					return cluster
+				}(),
+			),
+			ExistingMachines: []*clusterv1alpha1.Machine{genOldKubeletMachine("venus")},
+		},
+		// scenario 11 (kubehz): the annotation is the operator's to write, and
+		// the gate reads it from the stored cluster. Sending it in the patch
+		// body must not buy a skipped skew check on a cluster that has managed
+		// machines.
+		{
+			Name:             "scenario 11: the nodepools annotation in the patch body does not skip the machine version skew check",
+			Body:             `{"annotations":{"kubehz.cloud/nodepools":"off"},"spec":{"version":"9.11.3"}}`,
+			ExpectedResponse: `{"error":{"code":400,"message":"Cluster contains nodes running the following incompatible kubelet versions: [9.7.0]. Upgrade your nodes before you upgrade the cluster."}}`,
+			cluster:          "keen-snyder",
+			HTTPStatus:       http.StatusBadRequest,
+			project:          test.GenDefaultProject().Name,
+			ExistingAPIUser:  test.GenDefaultAPIUser(),
+			ExistingKubermaticObjects: test.GenDefaultKubermaticObjects(
+				test.GenTestSeed(),
+				func() *kubermaticv1.Cluster {
+					cluster := test.GenCluster("keen-snyder", "clusterAbc", test.GenDefaultProject().Name, time.Date(2013, 02, 03, 19, 54, 0, 0, time.UTC))
+					cluster.Spec.Cloud.DatacenterName = fakeDC
+					return cluster
+				}(),
+			),
+			ExistingMachines: []*clusterv1alpha1.Machine{genOldKubeletMachine("venus")},
 		},
 	}
 
@@ -2281,6 +2350,14 @@ func TestRevokeClusterAdminTokenEndpoint(t *testing.T) {
 			}
 		})
 	}
+}
+
+// genOldKubeletMachine returns a machine whose kubelet is too old for a 9.11.x
+// control plane, so the version skew check rejects an upgrade to it.
+func genOldKubeletMachine(name string) *clusterv1alpha1.Machine {
+	machine := test.GenTestMachine(name, `{"cloudProvider":"digitalocean","cloudProviderSpec":{"token":"dummy-token","region":"fra1","size":"2GB"},"operatingSystem":"ubuntu","containerRuntimeInfo":{"name":"docker","version":"1.13"},"operatingSystemSpec":{"distUpgradeOnBoot":true}}`, map[string]string{"md-id": "123"}, nil)
+	machine.Spec.Versions.Kubelet = "9.7.0"
+	return machine
 }
 
 func genUser(name, email string, isAdmin bool) *kubermaticv1.User {

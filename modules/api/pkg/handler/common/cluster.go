@@ -646,7 +646,23 @@ func PatchEndpoint(
 	// Checking kubelet versions on user cluster machines requires network connection between kubermatic-api and user cluster api-server.
 	// In case where the connection is blocked, we still want to be able to send a patch request. This can be achieved with an additional
 	// query param attached to the patch request: "skip_kubelet_version_validation=true"
-	if !skipKubeletVersionValidation {
+	//
+	// kubehz: the check is also skipped for a cluster the fork renders with
+	// nodepools off. Such a cluster has no machine-controller, so the user
+	// cluster serves no cluster.k8s.io API, the machine list fails, and every
+	// PATCH of the cluster returned 500, which blocked its upgrade: the version
+	// write goes through this endpoint. The cluster has no KKP-managed machine
+	// that can be skewed either; the customer joins the nodes and owns their
+	// kubelet versions. The annotation is read from oldInternalCluster, the
+	// STORED object, never from newInternalCluster: the patch body above feeds
+	// the annotations of whoever sends the request, so a tenant could otherwise
+	// send the annotation together with a new version in one request and skip
+	// the check on a cluster that does have managed machines. getKubeletVersions
+	// holds a second guard one level down: it reads an absent cluster.k8s.io
+	// group as "no machines", which keeps the endpoint up when the API is gone
+	// but the annotation is not there yet, for example before the operator
+	// re-derives it.
+	if !skipKubeletVersionValidation && !common.HasNodepoolsOff(oldInternalCluster) {
 		incompatibleKubelets, err := common.CheckClusterVersionSkew(ctx, userInfoGetter, clusterProvider, newInternalCluster, projectID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check existing nodes' version skew: %w", err)
