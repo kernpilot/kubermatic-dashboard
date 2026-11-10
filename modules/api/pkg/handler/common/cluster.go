@@ -599,6 +599,16 @@ func PatchEndpoint(
 	newInternalCluster.Spec.HumanReadableName = patchedCluster.Name
 	newInternalCluster.Labels = patchedCluster.Labels
 	newInternalCluster.Annotations = patchedCluster.Annotations
+	// kubehz: the kubehz.cloud/ annotations are the kubehz operator's. It
+	// writes them on the seed's Cluster object (seed RBAC), never through this
+	// endpoint, and the gates below trust them: kubehz.cloud/nodepools skips
+	// the machine version skew check. A change here would let any caller of
+	// the endpoint set them, for example the annotation in one request and the
+	// version in the next. A patch may carry them only unchanged (a client that
+	// sends back the whole annotation map).
+	if changed := common.KubehzAnnotationChanges(oldInternalCluster.Annotations, newInternalCluster.Annotations); len(changed) > 0 {
+		return nil, utilerrors.NewBadRequest("the annotations %v are written by the kubehz operator on the seed and cannot change through this API", changed)
+	}
 	newInternalCluster.Spec.Cloud = patchedCluster.Spec.Cloud
 	newInternalCluster.Spec.MachineNetworks = patchedCluster.Spec.MachineNetworks
 	newInternalCluster.Spec.Version = patchedCluster.Spec.Version
@@ -654,10 +664,12 @@ func PatchEndpoint(
 	// write goes through this endpoint. The cluster has no KKP-managed machine
 	// that can be skewed either; the customer joins the nodes and owns their
 	// kubelet versions. The annotation is read from oldInternalCluster, the
-	// STORED object, never from newInternalCluster: the patch body above feeds
-	// the annotations of whoever sends the request, so a tenant could otherwise
-	// send the annotation together with a new version in one request and skip
-	// the check on a cluster that does have managed machines. getKubeletVersions
+	// STORED object, never from newInternalCluster, and the check above refuses
+	// a patch that changes it: only the operator's write on the seed sets it.
+	// Thus neither one request (annotation and version together) nor two
+	// (first the annotation, then the version) skip the check on a cluster that
+	// does have managed machines. Upstream's skip_kubelet_version_validation
+	// query parameter (above) is a separate, explicit skip. getKubeletVersions
 	// holds a second guard one level down: it reads an absent cluster.k8s.io
 	// group as "no machines", which keeps the endpoint up when the API is gone
 	// but the annotation is not there yet, for example before the operator

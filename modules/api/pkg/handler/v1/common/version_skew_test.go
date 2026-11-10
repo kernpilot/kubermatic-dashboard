@@ -19,6 +19,7 @@ package common
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	clusterv1alpha1 "k8c.io/machine-controller/sdk/apis/cluster/v1alpha1"
@@ -54,9 +55,38 @@ func TestGetKubeletVersions(t *testing.T) {
 			Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "9.9.9"},
 		},
 	}
+	// ownedMachine belongs to a MachineSet and runs an old kubelet.
+	ownedMachine := &clusterv1alpha1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine-owned",
+			Namespace: metav1.NamespaceSystem,
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: clusterv1alpha1.SchemeGroupVersion.String(),
+				Kind:       "MachineSet",
+				Name:       "md-1-abc",
+				UID:        "6a1c4b2e-0d1f-4a54-9b0e-3c2d1e0f9a87",
+			}},
+		},
+		Spec: clusterv1alpha1.MachineSpec{
+			Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "9.7.0"},
+		},
+	}
+	// machineDeployment already asks for a newer kubelet than ownedMachine runs.
+	machineDeployment := &clusterv1alpha1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "md-1", Namespace: metav1.NamespaceSystem},
+		Spec: clusterv1alpha1.MachineDeploymentSpec{
+			Template: clusterv1alpha1.MachineTemplateSpec{
+				Spec: clusterv1alpha1.MachineSpec{
+					Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "9.9.9"},
+				},
+			},
+		},
+	}
 
 	testcases := []struct {
 		name string
+		// objects are the objects of the fake cluster; nil means machine only.
+		objects []ctrlruntimeclient.Object
 		// listErr, when set, is returned by the fake client for every list, or
 		// only for the MachineDeployment list when machineDeploymentsOnly is
 		// set.
@@ -84,9 +114,33 @@ func TestGetKubeletVersions(t *testing.T) {
 			expectedVersions:       []string{"9.9.9"},
 		},
 		{
+			name:                   "an owned machine keeps its old kubelet version when the MachineDeployment resource is absent",
+			objects:                []ctrlruntimeclient.Object{ownedMachine},
+			listErr:                apierrors.NewNotFound(machineDeploymentResource, ""),
+			machineDeploymentsOnly: true,
+			expectedVersions:       []string{"9.7.0"},
+		},
+		{
+			name:             "an owned machine counts next to the newer template of its MachineDeployment",
+			objects:          []ctrlruntimeclient.Object{ownedMachine, machineDeployment},
+			expectedVersions: []string{"9.7.0", "9.9.9"},
+		},
+		{
 			name:        "a NotFound on another group is still an error",
 			listErr:     apierrors.NewNotFound(podResource, "some-pod"),
 			expectedErr: true,
+		},
+		{
+			name:                   "a NotFound on another group in the MachineDeployment list is still an error",
+			listErr:                apierrors.NewNotFound(podResource, "some-pod"),
+			machineDeploymentsOnly: true,
+			expectedErr:            true,
+		},
+		{
+			name:                   "any other MachineDeployment list error is still an error",
+			listErr:                errors.New("connection refused"),
+			machineDeploymentsOnly: true,
+			expectedErr:            true,
 		},
 		{
 			name:        "a missing kind in another group is still an error",
@@ -104,7 +158,11 @@ func TestGetKubeletVersions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			builder := ctrlruntimefake.NewClientBuilder().WithScheme(scheme).WithObjects(machine)
+			objects := tc.objects
+			if objects == nil {
+				objects = []ctrlruntimeclient.Object{machine}
+			}
+			builder := ctrlruntimefake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...)
 			if tc.listErr != nil {
 				builder = builder.WithInterceptorFuncs(interceptor.Funcs{
 					List: func(ctx context.Context, client ctrlruntimeclient.WithWatch, list ctrlruntimeclient.ObjectList, opts ...ctrlruntimeclient.ListOption) error {
@@ -126,13 +184,74 @@ func TestGetKubeletVersions(t *testing.T) {
 			if err != nil {
 				t.Fatalf("expected no error, got: %v", err)
 			}
-			if len(versions) != len(tc.expectedVersions) {
+			slices.Sort(versions)
+			if !slices.Equal(versions, tc.expectedVersions) {
 				t.Fatalf("expected kubelet versions %v, got %v", tc.expectedVersions, versions)
 			}
-			for i, want := range tc.expectedVersions {
-				if versions[i] != want {
-					t.Fatalf("expected kubelet versions %v, got %v", tc.expectedVersions, versions)
-				}
+		})
+	}
+}
+
+// kubehz: the kubehz.cloud/ annotations are the operator's. A request may
+// carry them unchanged, and every other difference is reported by key.
+func TestKubehzAnnotationChanges(t *testing.T) {
+	t.Parallel()
+
+	stored := map[string]string{
+		KubehzNodepoolsAnnotation: KubehzNodepoolsOff,
+		"kubehz.cloud/datastore":  "kine",
+		"example.com/owner":       "team-a",
+	}
+
+	testcases := []struct {
+		name      string
+		stored    map[string]string
+		requested map[string]string
+		want      []string
+	}{
+		{
+			name:      "the same annotations are no change",
+			stored:    stored,
+			requested: map[string]string{KubehzNodepoolsAnnotation: KubehzNodepoolsOff, "kubehz.cloud/datastore": "kine", "example.com/owner": "team-a"},
+			want:      []string{},
+		},
+		{
+			name:      "other annotations may change",
+			stored:    stored,
+			requested: map[string]string{KubehzNodepoolsAnnotation: KubehzNodepoolsOff, "kubehz.cloud/datastore": "kine", "example.com/owner": "team-b", "example.com/new": "x"},
+			want:      []string{},
+		},
+		{
+			name:      "an added kubehz annotation is a change",
+			stored:    map[string]string{"example.com/owner": "team-a"},
+			requested: map[string]string{"example.com/owner": "team-a", KubehzNodepoolsAnnotation: KubehzNodepoolsOff},
+			want:      []string{KubehzNodepoolsAnnotation},
+		},
+		{
+			name:      "a removed kubehz annotation is a change",
+			stored:    stored,
+			requested: map[string]string{"kubehz.cloud/datastore": "kine", "example.com/owner": "team-a"},
+			want:      []string{KubehzNodepoolsAnnotation},
+		},
+		{
+			name:      "a changed value is a change, every key is reported once, sorted",
+			stored:    stored,
+			requested: map[string]string{KubehzNodepoolsAnnotation: "on", "kubehz.cloud/etcd-snapshot-count": "1"},
+			want:      []string{"kubehz.cloud/datastore", "kubehz.cloud/etcd-snapshot-count", KubehzNodepoolsAnnotation},
+		},
+		{
+			name:      "nil maps are no change",
+			stored:    nil,
+			requested: nil,
+			want:      []string{},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := KubehzAnnotationChanges(tc.stored, tc.requested); !slices.Equal(got, tc.want) {
+				t.Fatalf("KubehzAnnotationChanges() = %v, want %v", got, tc.want)
 			}
 		})
 	}

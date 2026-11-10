@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	semverlib "github.com/Masterminds/semver/v3"
@@ -54,6 +55,46 @@ const (
 // sends it.
 func HasNodepoolsOff(cluster *kubermaticv1.Cluster) bool {
 	return cluster.Annotations[KubehzNodepoolsAnnotation] == KubehzNodepoolsOff
+}
+
+// KubehzAnnotationPrefix is the prefix of the annotations that the kubehz
+// operator writes on a KKP Cluster (kubehz.cloud/nodepools,
+// kubehz.cloud/datastore, ...).
+const KubehzAnnotationPrefix = "kubehz.cloud/"
+
+// KubehzAnnotationChanges returns, sorted, the kubehz.cloud/ annotation keys
+// whose presence or value differs between the stored annotations and the
+// annotations a request asks for.
+//
+// The kubehz operator writes these keys on the seed's Cluster object, which
+// only the operator and the seed admins may change (seed RBAC). Its one write
+// through the cluster PATCH endpoint sends spec.version and nothing else.
+// So no caller of this API has a reason to change one, and a change through
+// it would let any caller of the endpoint set what the gates trust:
+// kubehz.cloud/nodepools: "off" skips the kubelet version skew check, and
+// kubehz.cloud/datastore decides the datastore of the control plane.
+func KubehzAnnotationChanges(stored, requested map[string]string) []string {
+	changed := map[string]bool{}
+	for key, value := range stored {
+		if strings.HasPrefix(key, KubehzAnnotationPrefix) {
+			if got, ok := requested[key]; !ok || got != value {
+				changed[key] = true
+			}
+		}
+	}
+	for key, value := range requested {
+		if strings.HasPrefix(key, KubehzAnnotationPrefix) {
+			if old, ok := stored[key]; !ok || old != value {
+				changed[key] = true
+			}
+		}
+	}
+	keys := make([]string, 0, len(changed))
+	for key := range changed {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	return keys
 }
 
 // CheckClusterVersionSkew returns a list of machines and/or machine deployments
@@ -140,13 +181,18 @@ func getKubeletVersions(ctx context.Context, client ctrlruntimeclient.Client) ([
 
 	kubeletVersionsSet := map[string]bool{}
 
-	// first let's go through the legacy non-MD nodes
+	// kubehz: every Machine counts, the ones a MachineSet owns too. Upstream
+	// read only Machines without an owner and took the kubelet versions of
+	// owned ones from their MachineDeployment template. A template is the
+	// desired version, not the version that runs: during a rollout, or when
+	// the MachineDeployment resource is absent (machineAPIAbsent above), an
+	// owned Machine with an old kubelet would drop out of the check, and an
+	// upgrade past that kubelet would pass. The check is thus stricter than
+	// upstream's: an old kubelet blocks the control plane upgrade until its
+	// Machine is replaced.
 	for _, m := range machineList.Items {
-		// Only list Machines that are not controlled, i.e. by Machine Set.
-		if len(m.OwnerReferences) == 0 {
-			ver := strings.TrimSpace(m.Spec.Versions.Kubelet)
-			kubeletVersionsSet[ver] = true
-		}
+		ver := strings.TrimSpace(m.Spec.Versions.Kubelet)
+		kubeletVersionsSet[ver] = true
 	}
 
 	// now the deployments
