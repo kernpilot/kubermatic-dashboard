@@ -599,9 +599,10 @@ func PatchEndpoint(
 	newInternalCluster.Spec.HumanReadableName = patchedCluster.Name
 	newInternalCluster.Labels = patchedCluster.Labels
 	newInternalCluster.Annotations = patchedCluster.Annotations
-	// kubehz: the kubehz.cloud/ annotations are the kubehz operator's. It
-	// writes them on the seed's Cluster object (seed RBAC), never through this
-	// endpoint, and the gates below trust them: kubehz.cloud/nodepools skips
+	// kubehz: the kubehz.cloud/ annotations are the kubehz operator's. It sets
+	// them at the cluster create and changes them later only on the seed's
+	// Cluster object (seed RBAC), never through this endpoint, and the gates
+	// below trust them: kubehz.cloud/nodepools skips
 	// the machine version skew check. A change here would let any caller of
 	// the endpoint set them, for example the annotation in one request and the
 	// version in the next. A patch may carry them only unchanged (a client that

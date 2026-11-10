@@ -190,6 +190,19 @@ func TestCreateClusterTemplateEndpoint(t *testing.T) {
 			),
 			ExistingAPIUser: test.GenAPIUser("Viewer", "viewer@acme.com"),
 		},
+		// scenario 10 (kubehz): a cluster template takes no kubehz.cloud/
+		// annotation; an instance would copy it onto a new cluster.
+		{
+			Name:             "scenario 10: a template with a kubehz.cloud annotation is refused",
+			Body:             fmt.Sprintf(`{"name":"test","scope":"user","cluster":{"name":"keen-snyder","annotations":{"kubehz.cloud/nodepools":"off"},"spec":{"version":"%s","cloud":{"fake":{"token":"dummy_token"},"dc":"fake-dc"}}}}`, version),
+			ExpectedResponse: `{"error":{"code":400,"message":"the annotations [kubehz.cloud/nodepools] are written by the kubehz operator and cannot be set on a cluster template"}}`,
+			HTTPStatus:       http.StatusBadRequest,
+			ProjectToSync:    test.GenDefaultProject().Name,
+			ExistingKubermaticObjs: test.GenDefaultKubermaticObjects(
+				test.GenTestSeed(),
+			),
+			ExistingAPIUser: test.GenDefaultAPIUser(),
+		},
 	}
 
 	dummyKubermaticConfiguration := kubermaticv1.KubermaticConfiguration{
@@ -930,6 +943,23 @@ func TestImportClusterTemplateEndpoint(t *testing.T) {
 			),
 			ExistingAPIUser: test.GenAPIUser("Viewer", "viewer@acme.com"),
 		},
+		// scenario 8 (kubehz): an import builds the cluster from the body's
+		// name, labels and spec only, so a kubehz.cloud/ annotation in the body
+		// never reaches the template. If upstream starts to copy the
+		// annotations, the refusal in createOrUpdateClusterTemplate answers 400
+		// and this case fails: then read the import path again.
+		{
+			Name:             "scenario 8: an import drops the cluster's annotations, the kubehz.cloud ones too",
+			Body:             fmt.Sprintf(`{"name":"test","scope":"user","cluster":{"name":"keen-snyder","annotations":{"kubehz.cloud/nodepools":"off"},"spec":{"version":"%s","cloud":{"fake":{"token":"dummy_token"},"dc":"fake-dc"}}}}`, version),
+			ExpectedResponse: fmt.Sprintf(`{"annotations":{"kubermatic.io/initial-application-installations-request":"[]","kubermatic.io/initial-machinedeployment-request":"","user":"bob@acme.com"},"creationTimestamp":"0001-01-01T00:00:00Z","name":"test","id":"%%s","projectID":"my-first-project-ID","user":"bob@acme.com","scope":"user","cluster":{"annotations":{"kubermatic.io/initial-application-installations-request":"[]","kubermatic.io/initial-machinedeployment-request":"","user":"bob@acme.com"},"spec":{"cloud":{"dc":"fake-dc","fake":{}},"version":"%s","oidc":{},"enableUserSSHKeyAgent":true,"kubernetesDashboard":{"enabled":true},"containerRuntime":"containerd","clusterNetwork":{"ipFamily":"IPv4","services":{"cidrBlocks":["10.240.16.0/20"]},"pods":{"cidrBlocks":["172.25.0.0/16"]},"nodeCidrMaskSizeIPv4":24,"dnsDomain":"cluster.local","proxyMode":"nftables","nodeLocalDNSCacheEnabled":true,"konnectivityEnabled":true},"cniPlugin":{"type":"cilium","version":"%s"},"exposeStrategy":"NodePort"}},"nodeDeployment":{"spec":{"replicas":0,"template":{"cloud":{},"operatingSystem":{},"versions":{"kubelet":""}}}}}`, version, ciliumVersion),
+			RewriteClusterID: true,
+			HTTPStatus:       http.StatusCreated,
+			ProjectToSync:    test.GenDefaultProject().Name,
+			ExistingKubermaticObjs: test.GenDefaultKubermaticObjects(
+				test.GenTestSeed(),
+			),
+			ExistingAPIUser: test.GenDefaultAPIUser(),
+		},
 	}
 
 	dummyKubermaticConfiguration := kubermaticv1.KubermaticConfiguration{
@@ -979,4 +1009,42 @@ func TestImportClusterTemplateEndpoint(t *testing.T) {
 			test.CompareWithResult(t, res, expectedResponse)
 		})
 	}
+}
+
+// kubehz: the update of a cluster template refuses a kubehz.cloud/
+// annotation too (create, update and import share createOrUpdateClusterTemplate).
+func TestUpdateClusterTemplateRefusesKubehzAnnotations(t *testing.T) {
+	version := defaulting.DefaultKubernetesVersioning.Default.String()
+	t.Parallel()
+
+	dummyKubermaticConfiguration := kubermaticv1.KubermaticConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubermatic",
+			Namespace: resources.KubermaticNamespace,
+		},
+		Spec: kubermaticv1.KubermaticConfigurationSpec{
+			Versions: kubermaticv1.KubermaticVersioningConfiguration{
+				Versions: defaulting.DefaultKubernetesVersioning.Versions,
+			},
+		},
+	}
+
+	body := fmt.Sprintf(`{"name":"test","scope":"user","cluster":{"name":"keen-snyder","annotations":{"kubehz.cloud/nodepools":"off"},"spec":{"version":"%s","cloud":{"fake":{"token":"dummy_token"},"dc":"fake-dc"}}}}`, version)
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/v2/projects/%s/clustertemplates/%s", test.GenDefaultProject().Name, "ctID1"), strings.NewReader(body))
+	res := httptest.NewRecorder()
+	objs := test.GenDefaultKubermaticObjects(
+		test.GenTestSeed(),
+		test.GenClusterTemplate("test", "ctID1", test.GenDefaultProject().Name, kubermaticv1.UserClusterTemplateScope, test.GenDefaultAPIUser().Email),
+	)
+	ep, err := test.CreateTestEndpoint(*test.GenDefaultAPIUser(), []ctrlruntimeclient.Object{}, objs, &dummyKubermaticConfiguration, hack.NewTestRouting)
+	if err != nil {
+		t.Fatalf("failed to create test endpoint: %v", err)
+	}
+
+	ep.ServeHTTP(res, req)
+
+	if res.Code != http.StatusBadRequest {
+		t.Fatalf("Expected HTTP status code %d, got %d: %s", http.StatusBadRequest, res.Code, res.Body.String())
+	}
+	test.CompareWithResult(t, res, `{"error":{"code":400,"message":"the annotations [kubehz.cloud/nodepools] are written by the kubehz operator and cannot be set on a cluster template"}}`)
 }

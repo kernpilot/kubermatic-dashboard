@@ -66,13 +66,17 @@ const KubehzAnnotationPrefix = "kubehz.cloud/"
 // whose presence or value differs between the stored annotations and the
 // annotations a request asks for.
 //
-// The kubehz operator writes these keys on the seed's Cluster object, which
-// only the operator and the seed admins may change (seed RBAC). Its one write
-// through the cluster PATCH endpoint sends spec.version and nothing else.
-// So no caller of this API has a reason to change one, and a change through
-// it would let any caller of the endpoint set what the gates trust:
+// The kubehz operator sets these keys when it creates a cluster (the cluster
+// create of this API carries them) and changes them later only on the seed's
+// Cluster object, which only the operator and the seed admins may change
+// (seed RBAC). Its one write through the cluster PATCH endpoint sends
+// spec.version and nothing else, and it uses no cluster templates. So a
+// change through a PATCH or a template has no legitimate writer, and would
+// let any caller of the endpoint set what the gates trust:
 // kubehz.cloud/nodepools: "off" skips the kubelet version skew check, and
-// kubehz.cloud/datastore decides the datastore of the control plane.
+// kubehz.cloud/datastore decides the datastore of the control plane. The
+// cluster create still takes the keys from its caller; that boundary is who
+// may call the KKP API at all (kubehz-cluster BUGS-FOUND B540).
 func KubehzAnnotationChanges(stored, requested map[string]string) []string {
 	changed := map[string]bool{}
 	for key, value := range stored {

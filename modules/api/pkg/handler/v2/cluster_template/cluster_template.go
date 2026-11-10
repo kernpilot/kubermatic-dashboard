@@ -446,6 +446,16 @@ func createOrUpdateClusterTemplate(ctx context.Context, userInfoGetter provider.
 		return nil, err
 	}
 
+	// kubehz: a cluster template takes no kubehz.cloud/ annotation. The
+	// kubehz operator sets those on the clusters it creates and uses no
+	// templates, and an instance copies the template's annotations onto a
+	// new cluster, so a template would be a second way to set what the
+	// fork's gates trust. The check covers create, update and import (all
+	// three come here), and runs before the first write.
+	if keys := common.KubehzAnnotationChanges(nil, partialCluster.Annotations); len(keys) > 0 {
+		return nil, utilerrors.NewBadRequest("the annotations %v are written by the kubehz operator and cannot be set on a cluster template", keys)
+	}
+
 	isUpdateRequest := false
 	if clusterTemplateID != "" {
 		isUpdateRequest = true
