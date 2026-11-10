@@ -450,7 +450,8 @@ func createOrUpdateClusterTemplate(ctx context.Context, userInfoGetter provider.
 	// GenerateCluster already writes (the encryption-key Secret on the
 	// master, for a body with encryption at rest), and a refusal must leave
 	// nothing behind. GenerateCluster copies the body's annotations and adds
-	// only kubermatic.io/ keys, so the body is all there is to check.
+	// only KKP's own keys (presetName and kubermatic.io/ keys), so the body
+	// is all there is to check.
 	if keys := common.KubehzAnnotationChanges(nil, createCluster.Cluster.Annotations); len(keys) > 0 {
 		return nil, utilerrors.NewBadRequest("the annotations %v are written by the kubehz operator and cannot be set on a cluster template", keys)
 	}
