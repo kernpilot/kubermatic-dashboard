@@ -441,19 +441,23 @@ func createOrUpdateClusterTemplate(ctx context.Context, userInfoGetter provider.
 		return nil, common.KubernetesErrorToHTTPError(err)
 	}
 
-	partialCluster, err := handlercommon.GenerateCluster(ctx, projectID, createCluster, seedsGetter, credentialManager, exposeStrategy, userInfoGetter, caBundle, configGetter, features, settingsProvider)
-	if err != nil {
-		return nil, err
-	}
-
 	// kubehz: a cluster template takes no kubehz.cloud/ annotation. The
 	// kubehz operator sets those on the clusters it creates and uses no
 	// templates, and an instance copies the template's annotations onto a
 	// new cluster, so a template would be a second way to set what the
 	// fork's gates trust. The check covers create, update and import (all
-	// three come here), and runs before the first write.
-	if keys := common.KubehzAnnotationChanges(nil, partialCluster.Annotations); len(keys) > 0 {
+	// three come here). It reads the request body, before GenerateCluster:
+	// GenerateCluster already writes (the encryption-key Secret on the
+	// master, for a body with encryption at rest), and a refusal must leave
+	// nothing behind. GenerateCluster copies the body's annotations and adds
+	// only kubermatic.io/ keys, so the body is all there is to check.
+	if keys := common.KubehzAnnotationChanges(nil, createCluster.Cluster.Annotations); len(keys) > 0 {
 		return nil, utilerrors.NewBadRequest("the annotations %v are written by the kubehz operator and cannot be set on a cluster template", keys)
+	}
+
+	partialCluster, err := handlercommon.GenerateCluster(ctx, projectID, createCluster, seedsGetter, credentialManager, exposeStrategy, userInfoGetter, caBundle, configGetter, features, settingsProvider)
+	if err != nil {
+		return nil, err
 	}
 
 	isUpdateRequest := false
@@ -576,6 +580,14 @@ func CreateInstanceEndpoint(projectProvider provider.ProjectProvider, privileged
 		ct, err := clusterTemplateProvider.Get(ctx, adminUserInfo, project.Name, req.ClusterTemplateID)
 		if err != nil {
 			return nil, common.KubernetesErrorToHTTPError(err)
+		}
+
+		// kubehz: the template controller copies the template's annotations
+		// onto each new cluster. This API refuses kubehz.cloud/ keys on a
+		// template, but a template written straight through Kubernetes can
+		// still carry them, so an instance of such a template is refused too.
+		if keys := common.KubehzAnnotationChanges(nil, ct.Annotations); len(keys) > 0 {
+			return nil, utilerrors.NewBadRequest("the cluster template carries the annotations %v, which are written by the kubehz operator; an instance would copy them onto new clusters", keys)
 		}
 
 		seed, _, err := provider.DatacenterFromSeedMap(adminUserInfo, seedsGetter, ct.Spec.Cloud.DatacenterName)

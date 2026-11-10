@@ -74,9 +74,12 @@ const KubehzAnnotationPrefix = "kubehz.cloud/"
 // change through a PATCH or a template has no legitimate writer, and would
 // let any caller of the endpoint set what the gates trust:
 // kubehz.cloud/nodepools: "off" skips the kubelet version skew check, and
-// kubehz.cloud/datastore decides the datastore of the control plane. The
-// cluster create still takes the keys from its caller; that boundary is who
-// may call the KKP API at all (kubehz-cluster BUGS-FOUND B540).
+// kubehz.cloud/datastore decides the datastore of the control plane. A
+// template create, update or import with the keys is refused before its
+// first write, and so is an instance of a template that carries them (a
+// template written straight through Kubernetes). The cluster create still
+// takes the keys from its caller; that boundary is who may call the KKP API
+// at all (kubehz-cluster BUGS-FOUND B540).
 func KubehzAnnotationChanges(stored, requested map[string]string) []string {
 	changed := map[string]bool{}
 	for key, value := range stored {

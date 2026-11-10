@@ -17,10 +17,12 @@ limitations under the License.
 package clustertemplate_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -33,6 +35,7 @@ import (
 	"k8c.io/kubermatic/v2/pkg/defaulting"
 	"k8c.io/kubermatic/v2/pkg/resources"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -1047,4 +1050,179 @@ func TestUpdateClusterTemplateRefusesKubehzAnnotations(t *testing.T) {
 		t.Fatalf("Expected HTTP status code %d, got %d: %s", http.StatusBadRequest, res.Code, res.Body.String())
 	}
 	test.CompareWithResult(t, res, `{"error":{"code":400,"message":"the annotations [kubehz.cloud/nodepools] are written by the kubehz operator and cannot be set on a cluster template"}}`)
+}
+
+// kubehz: a refused template create writes nothing. GenerateCluster creates
+// the encryption-key Secret on the master for a body with encryption at
+// rest, so the refusal must come before it. The second case is the control:
+// without the kubehz.cloud/ annotation the same body writes the Secret, so
+// the first case can see a write.
+func TestCreateClusterTemplateRefusalWritesNothing(t *testing.T) {
+	version := defaulting.DefaultKubernetesVersioning.Default.String()
+	t.Parallel()
+
+	dummyKubermaticConfiguration := kubermaticv1.KubermaticConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubermatic",
+			Namespace: resources.KubermaticNamespace,
+		},
+		Spec: kubermaticv1.KubermaticConfigurationSpec{
+			Versions: kubermaticv1.KubermaticVersioningConfiguration{
+				Versions: defaulting.DefaultKubernetesVersioning.Versions,
+			},
+		},
+	}
+
+	testcases := []struct {
+		Name              string
+		Annotations       string
+		HTTPStatus        int
+		ExpectedResponse  string
+		ExpectedNewSecret bool
+	}{
+		{
+			Name:              "a refused create writes no encryption-key Secret",
+			Annotations:       `"annotations":{"kubehz.cloud/nodepools":"off"},`,
+			HTTPStatus:        http.StatusBadRequest,
+			ExpectedResponse:  `{"error":{"code":400,"message":"the annotations [kubehz.cloud/nodepools] are written by the kubehz operator and cannot be set on a cluster template"}}`,
+			ExpectedNewSecret: false,
+		},
+		{
+			Name:              "control: the same create without the annotation writes the Secret",
+			HTTPStatus:        http.StatusCreated,
+			ExpectedNewSecret: true,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.Name, func(t *testing.T) {
+			body := fmt.Sprintf(`{"name":"test","scope":"user","cluster":{"name":"keen-snyder",%s"spec":{"version":"%s","cloud":{"fake":{"token":"dummy_token"},"dc":"fake-dc"},"exposeStrategy":"NodePort","encryptionConfiguration":{"enabled":true}}},"encryptionAtRest":{"key":"test-encryption-key"}}`, tc.Annotations, version)
+			req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v2/projects/%s/clustertemplates", test.GenDefaultProject().Name), strings.NewReader(body))
+			res := httptest.NewRecorder()
+			objs := test.GenDefaultKubermaticObjects(test.GenTestSeed())
+			ep, clients, err := test.CreateTestEndpointAndGetClients(*test.GenDefaultAPIUser(), nil, []ctrlruntimeclient.Object{}, nil, objs, &dummyKubermaticConfiguration, hack.NewTestRouting)
+			if err != nil {
+				t.Fatalf("failed to create test endpoint: %v", err)
+			}
+			before := masterSecretNames(t, clients.FakeMasterClient)
+
+			ep.ServeHTTP(res, req)
+
+			if res.Code != tc.HTTPStatus {
+				t.Fatalf("Expected HTTP status code %d, got %d: %s", tc.HTTPStatus, res.Code, res.Body.String())
+			}
+			if tc.ExpectedResponse != "" {
+				test.CompareWithResult(t, res, tc.ExpectedResponse)
+			}
+			var added []string
+			for _, name := range masterSecretNames(t, clients.FakeMasterClient) {
+				if !slices.Contains(before, name) {
+					added = append(added, name)
+				}
+			}
+			hasKey := slices.ContainsFunc(added, func(name string) bool {
+				return strings.HasPrefix(name, resources.KubermaticNamespace+"/encryption-key-cluster-")
+			})
+			if tc.ExpectedNewSecret && !hasKey {
+				t.Fatalf("expected a new encryption-key Secret on the master, the new Secrets are %v", added)
+			}
+			if !tc.ExpectedNewSecret && len(added) > 0 {
+				t.Fatalf("expected no new Secret on the master after the refusal, got %v", added)
+			}
+		})
+	}
+}
+
+// masterSecretNames returns the sorted <namespace>/<name> of every Secret the
+// client has.
+func masterSecretNames(t *testing.T, c ctrlruntimeclient.Client) []string {
+	t.Helper()
+	list := &corev1.SecretList{}
+	if err := c.List(context.Background(), list); err != nil {
+		t.Fatalf("failed to list the Secrets: %v", err)
+	}
+	names := make([]string, 0, len(list.Items))
+	for _, secret := range list.Items {
+		names = append(names, secret.Namespace+"/"+secret.Name)
+	}
+	slices.Sort(names)
+	return names
+}
+
+// kubehz: an instance of a template that carries a kubehz.cloud/ annotation
+// is refused (the template controller would copy it onto each new cluster).
+// Such a template can come straight through Kubernetes; this API refuses it
+// on create, update and import. The control case instantiates a clean
+// template, so the instance count can see a write.
+func TestCreateClusterTemplateInstanceRefusesKubehzAnnotations(t *testing.T) {
+	t.Parallel()
+	marked := test.GenClusterTemplate("ct5", "ctID5", "", kubermaticv1.GlobalClusterTemplateScope, "john@acme.com")
+	marked.Annotations["kubehz.cloud/nodepools"] = "off"
+	marked.Annotations["kubehz.cloud/datastore"] = "kine"
+
+	testcases := []struct {
+		Name              string
+		TemplateToSync    string
+		ExistingAPIUser   *apiv1.User
+		HTTPStatus        int
+		ExpectedResponse  string
+		ExpectedInstances int
+	}{
+		{
+			Name:              "a user gets no instance of a marked template",
+			TemplateToSync:    "ctID5",
+			ExistingAPIUser:   test.GenDefaultAPIUser(),
+			HTTPStatus:        http.StatusBadRequest,
+			ExpectedResponse:  `{"error":{"code":400,"message":"the cluster template carries the annotations [kubehz.cloud/datastore kubehz.cloud/nodepools], which are written by the kubehz operator; an instance would copy them onto new clusters"}}`,
+			ExpectedInstances: 0,
+		},
+		{
+			Name:              "an admin gets no instance of a marked template",
+			TemplateToSync:    "ctID5",
+			ExistingAPIUser:   test.GenAPIUser("john", "john@acme.com"),
+			HTTPStatus:        http.StatusBadRequest,
+			ExpectedResponse:  `{"error":{"code":400,"message":"the cluster template carries the annotations [kubehz.cloud/datastore kubehz.cloud/nodepools], which are written by the kubehz operator; an instance would copy them onto new clusters"}}`,
+			ExpectedInstances: 0,
+		},
+		{
+			Name:              "control: a clean template still gives an instance",
+			TemplateToSync:    "ctID2",
+			ExistingAPIUser:   test.GenDefaultAPIUser(),
+			HTTPStatus:        http.StatusCreated,
+			ExpectedInstances: 1,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.Name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v2/projects/%s/clustertemplates/%s/instances", test.ProjectName, tc.TemplateToSync), strings.NewReader(`{"replicas":1}`))
+			res := httptest.NewRecorder()
+			objs := test.GenDefaultKubermaticObjects(
+				test.GenTestSeed(),
+				test.GenAdminUser("admin", "john@acme.com", true),
+				test.GenClusterTemplate("ct2", "ctID2", "", kubermaticv1.GlobalClusterTemplateScope, "john@acme.com"),
+				marked.DeepCopy(),
+			)
+			ep, clients, err := test.CreateTestEndpointAndGetClients(*tc.ExistingAPIUser, nil, []ctrlruntimeclient.Object{}, nil, objs, nil, hack.NewTestRouting)
+			if err != nil {
+				t.Fatalf("failed to create test endpoint: %v", err)
+			}
+
+			ep.ServeHTTP(res, req)
+
+			if res.Code != tc.HTTPStatus {
+				t.Fatalf("Expected HTTP status code %d, got %d: %s", tc.HTTPStatus, res.Code, res.Body.String())
+			}
+			if tc.ExpectedResponse != "" {
+				test.CompareWithResult(t, res, tc.ExpectedResponse)
+			}
+			instances := &kubermaticv1.ClusterTemplateInstanceList{}
+			if err := clients.FakeSeedClient.List(context.Background(), instances); err != nil {
+				t.Fatalf("failed to list the cluster template instances: %v", err)
+			}
+			if len(instances.Items) != tc.ExpectedInstances {
+				t.Fatalf("expected %d cluster template instances, got %d", tc.ExpectedInstances, len(instances.Items))
+			}
+		})
+	}
 }
