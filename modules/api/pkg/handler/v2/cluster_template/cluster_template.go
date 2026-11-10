@@ -445,13 +445,16 @@ func createOrUpdateClusterTemplate(ctx context.Context, userInfoGetter provider.
 	// kubehz operator sets those on the clusters it creates and uses no
 	// templates, and an instance copies the template's annotations onto a
 	// new cluster, so a template would be a second way to set what the
-	// fork's gates trust. The check covers create, update and import (all
-	// three come here). It reads the request body, before GenerateCluster:
-	// GenerateCluster already writes (the encryption-key Secret on the
-	// master, for a body with encryption at rest), and a refusal must leave
-	// nothing behind. GenerateCluster copies the body's annotations and adds
-	// only KKP's own keys (presetName and kubermatic.io/ keys), so the body
-	// is all there is to check.
+	// fork's gates trust. The check covers create and update. An import
+	// comes here too, but its spec is built from the body's labels only, so
+	// it drops every annotation and the check sees none. The controller and
+	// a ClusterTemplateInstance written straight through Kubernetes do not
+	// pass this API (kubehz-cluster BUGS-FOUND B540). The check reads the
+	// request body, before GenerateCluster: GenerateCluster already writes
+	// (the encryption-key Secret on the master, for a body with encryption
+	// at rest), and a refusal must leave nothing behind. GenerateCluster
+	// copies the body's annotations and adds only KKP's own keys (presetName
+	// and kubermatic.io/ keys), so the body is all there is to check.
 	if keys := common.KubehzAnnotationChanges(nil, createCluster.Cluster.Annotations); len(keys) > 0 {
 		return nil, utilerrors.NewBadRequest("the annotations %v are written by the kubehz operator and cannot be set on a cluster template", keys)
 	}

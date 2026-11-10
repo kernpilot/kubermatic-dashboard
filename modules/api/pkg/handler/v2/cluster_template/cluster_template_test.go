@@ -1104,7 +1104,8 @@ func TestCreateClusterTemplateRefusalWritesNothing(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create test endpoint: %v", err)
 			}
-			before := masterSecretNames(t, clients.FakeMasterClient)
+			masterBefore := secretVersions(t, clients.FakeMasterClient)
+			seedBefore := secretVersions(t, clients.FakeSeedClient)
 
 			ep.ServeHTTP(res, req)
 
@@ -1114,17 +1115,19 @@ func TestCreateClusterTemplateRefusalWritesNothing(t *testing.T) {
 			if tc.ExpectedResponse != "" {
 				test.CompareWithResult(t, res, tc.ExpectedResponse)
 			}
-			var added []string
-			for _, name := range masterSecretNames(t, clients.FakeMasterClient) {
-				if !slices.Contains(before, name) {
-					added = append(added, name)
-				}
+			added, changed, deleted := secretDiff(masterBefore, secretVersions(t, clients.FakeMasterClient))
+			if len(changed) > 0 || len(deleted) > 0 {
+				t.Fatalf("expected no changed or deleted Secret on the master, changed %v, deleted %v", changed, deleted)
+			}
+			seedAdded, seedChanged, seedDeleted := secretDiff(seedBefore, secretVersions(t, clients.FakeSeedClient))
+			if len(seedAdded) > 0 || len(seedChanged) > 0 || len(seedDeleted) > 0 {
+				t.Fatalf("expected the seed Secrets unchanged, added %v, changed %v, deleted %v", seedAdded, seedChanged, seedDeleted)
 			}
 			hasKey := slices.ContainsFunc(added, func(name string) bool {
 				return strings.HasPrefix(name, resources.KubermaticNamespace+"/encryption-key-cluster-")
 			})
-			if tc.ExpectedNewSecret && !hasKey {
-				t.Fatalf("expected a new encryption-key Secret on the master, the new Secrets are %v", added)
+			if tc.ExpectedNewSecret && (!hasKey || len(added) != 1) {
+				t.Fatalf("expected exactly one new Secret on the master, the encryption key; the new Secrets are %v", added)
 			}
 			if !tc.ExpectedNewSecret && len(added) > 0 {
 				t.Fatalf("expected no new Secret on the master after the refusal, got %v", added)
@@ -1133,27 +1136,65 @@ func TestCreateClusterTemplateRefusalWritesNothing(t *testing.T) {
 	}
 }
 
-// masterSecretNames returns the sorted <namespace>/<name> of every Secret the
-// client has.
-func masterSecretNames(t *testing.T, c ctrlruntimeclient.Client) []string {
+// secretVersions returns the resourceVersion of every Secret the client has,
+// by <namespace>/<name>. A write to a Secret changes its resourceVersion.
+func secretVersions(t *testing.T, c ctrlruntimeclient.Client) map[string]string {
 	t.Helper()
 	list := &corev1.SecretList{}
 	if err := c.List(context.Background(), list); err != nil {
 		t.Fatalf("failed to list the Secrets: %v", err)
 	}
-	names := make([]string, 0, len(list.Items))
+	versions := make(map[string]string, len(list.Items))
 	for _, secret := range list.Items {
-		names = append(names, secret.Namespace+"/"+secret.Name)
+		versions[secret.Namespace+"/"+secret.Name] = secret.ResourceVersion
 	}
-	slices.Sort(names)
-	return names
+	return versions
+}
+
+// secretDiff compares two secretVersions snapshots and returns the sorted
+// names of the Secrets that are new, written again, or gone.
+func secretDiff(before, after map[string]string) (added, changed, deleted []string) {
+	for name, version := range after {
+		old, ok := before[name]
+		switch {
+		case !ok:
+			added = append(added, name)
+		case old != version:
+			changed = append(changed, name)
+		}
+	}
+	for name := range before {
+		if _, ok := after[name]; !ok {
+			deleted = append(deleted, name)
+		}
+	}
+	slices.Sort(added)
+	slices.Sort(changed)
+	slices.Sort(deleted)
+	return added, changed, deleted
+}
+
+// The snapshot comparison sees each kind of write: a new Secret, a Secret
+// written again, and a deleted one.
+func TestSecretDiffSeesEveryWrite(t *testing.T) {
+	t.Parallel()
+	before := map[string]string{"kubermatic/a": "1", "kubermatic/b": "2", "kubermatic/c": "3"}
+	after := map[string]string{"kubermatic/a": "1", "kubermatic/b": "5", "kubermatic/d": "6"}
+	added, changed, deleted := secretDiff(before, after)
+	if !slices.Equal(added, []string{"kubermatic/d"}) || !slices.Equal(changed, []string{"kubermatic/b"}) || !slices.Equal(deleted, []string{"kubermatic/c"}) {
+		t.Fatalf("got added %v, changed %v, deleted %v", added, changed, deleted)
+	}
+	added, changed, deleted = secretDiff(before, before)
+	if len(added)+len(changed)+len(deleted) != 0 {
+		t.Fatalf("an unchanged snapshot gave added %v, changed %v, deleted %v", added, changed, deleted)
+	}
 }
 
 // kubehz: an instance of a template that carries a kubehz.cloud/ annotation
 // is refused (the template controller would copy it onto each new cluster).
 // Such a template can come straight through Kubernetes; this API refuses it
-// on create, update and import. The control case instantiates a clean
-// template, so the instance count can see a write.
+// on create and update, and an import drops it. The control case
+// instantiates a clean template, so the instance count can see a write.
 func TestCreateClusterTemplateInstanceRefusesKubehzAnnotations(t *testing.T) {
 	t.Parallel()
 	marked := test.GenClusterTemplate("ct5", "ctID5", "", kubermaticv1.GlobalClusterTemplateScope, "john@acme.com")
